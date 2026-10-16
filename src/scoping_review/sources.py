@@ -11,6 +11,7 @@ their exports are imported as files (`agsci sr import`), not fetched here.
 
 from __future__ import annotations
 
+import difflib
 import json
 import os
 import re
@@ -194,6 +195,49 @@ def arxiv(query: str, cap: int, since: str = "") -> list[dict]:
         start += len(entries)
         time.sleep(3.0)  # arXiv API terms: one request every 3 seconds
     return out[:cap]
+
+
+def _same_title(a: str, b: str) -> bool:
+    """True when two titles name the same paper: close overall, or one is the other plus a subtitle."""
+    from .records import norm_title
+    x, y = norm_title(a), norm_title(b)
+    return not x or bool(y) and (x.startswith(y) or y.startswith(x) or difflib.SequenceMatcher(None, x, y).ratio() >= 0.6)
+
+
+def openalex_seed_recall(query: str, seeds: list[dict], since: str = "") -> dict:
+    """Exact seed recall for an OpenAlex strategy at any volume: total hit count, and which seeds the
+    query matches, found by membership (seed OpenAlex ids AND the query) rather than in a capped download."""
+    from .records import norm_title
+    base = "https://api.openalex.org/works?"
+    def works(flt: str, per: int = 50) -> dict:
+        return json.loads(_get(base + urllib.parse.urlencode(_contact({"filter": flt, "per-page": per, "select": "id,doi,title"}, "mailto")), timeout=90))
+    date = f",from_publication_date:{since}" if since else ""
+    ids, unresolved = {}, []
+    for s in seeds:
+        wid = ""
+        for doi in [d for d in (s.get("doi"), f"10.48550/arxiv.{s['arxiv']}" if s.get("arxiv") else "") if d]:
+            res = works("doi:" + doi, 1)["results"]
+            # a DOI that resolves to a different title is a wrong DOI in the seed file, not this paper
+            if res and _same_title(s.get("raw_title", ""), res[0].get("title") or ""):
+                wid = res[0]["id"].rsplit("/", 1)[-1]
+                break
+        if not wid and s.get("raw_title"):
+            clean = re.sub(r"[,:|]", " ", s["raw_title"])  # filter syntax reserves these
+            wid = next((w["id"].rsplit("/", 1)[-1] for w in works("title.search:" + clean, 25)["results"]
+                        if norm_title(w.get("title") or "") == s["title"]), "")
+        if wid:
+            ids[s["key"]] = wid
+        else:
+            unresolved.append(s["key"])
+    total = json.loads(_get(base + urllib.parse.urlencode(_contact({"filter": "title_and_abstract.search:" + query + date, "per-page": 1}, "mailto")), timeout=90))["meta"]["count"]
+    hit_ids = set()
+    if ids:
+        res = works("title_and_abstract.search:" + query + date + ",ids.openalex:" + "|".join(ids.values()), 50)["results"]
+        hit_ids = {w["id"].rsplit("/", 1)[-1] for w in res}
+    found = [k for k, w in ids.items() if w in hit_ids]
+    return {"source": "openalex", "hits": total, "capped": False, "seeds": len(seeds), "found": found,
+            "missed": [s["key"] for s in seeds if s["key"] not in found], "not_in_openalex": unresolved,
+            "recall": len(found) / len(seeds) if seeds else None, "openalex_ids": ids}
 
 
 ADAPTERS = {"pubmed": pubmed, "europepmc": europepmc, "openalex": openalex,

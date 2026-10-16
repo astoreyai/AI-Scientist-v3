@@ -98,3 +98,6 @@ def test_search_lint_on_real_strategy(tmp_path):
     (tmp_path / "pubmed.txt").write_text(real.strip() + " NOT animals")
     run("search-lint", tmp_path, "--out", tmp_path / "l.json")
     assert "pubmed.txt: uses NOT (MECIR C32)" in json.loads((tmp_path / "l.json").read_text())["problems"]
+    (tmp_path / "pubmed.txt").write_text("# Filters NOT applied: none\n" + real.strip())
+    run("search-lint", tmp_path, "--out", tmp_path / "l.json")
+    assert not any("NOT" in p for p in json.loads((tmp_path / "l.json").read_text())["problems"]), "a comment is not the query"

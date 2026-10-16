@@ -385,9 +385,16 @@ def cmd_chase(args) -> int:
 def cmd_test_search(args) -> int:
     """P2.05a: run the primary strategy and measure recall of the seed set."""
     strategy = Path(args.strategy)
-    raw = sources.ADAPTERS[args.source](strategy.read_text().strip(), args.cap)
-    res = fulltext.seed_recall(raw, Path(args.seeds).read_text())
-    res |= {"source": args.source, "hits": len(raw), "capped": len(raw) >= args.cap, "strategy": str(strategy)}
+    lines = [x.strip() for x in strategy.read_text().splitlines() if x.strip() and not x.lstrip().startswith("#")]
+    if len(lines) != 1:
+        raise SystemExit(f"{strategy}: expected exactly one uncommented query line, found {len(lines)}")
+    if args.source == "openalex":  # exact recall at any volume
+        res = sources.openalex_seed_recall(lines[0], fulltext.seed_list(Path(args.seeds).read_text()), args.since)
+    else:
+        raw = sources.ADAPTERS[args.source](lines[0], args.cap, args.since)
+        res = fulltext.seed_recall(raw, Path(args.seeds).read_text())
+        res |= {"source": args.source, "hits": len(raw), "capped": len(raw) >= args.cap}
+    res["strategy"] = str(strategy)
     Path(args.out).write_text(json.dumps(res, indent=1))
     print(json.dumps({k: res[k] for k in ("hits", "recall", "missed")}), file=sys.stderr)
     return 0
@@ -661,6 +668,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source", required=True, choices=sorted(sources.ADAPTERS))
     p.add_argument("--seeds", required=True)
     p.add_argument("--cap", type=int, default=2000)
+    p.add_argument("--since", default="", help="earliest publication date, YYYY-MM-DD")
     p.add_argument("--out", required=True)
     p.set_defaults(fn=cmd_test_search)
 

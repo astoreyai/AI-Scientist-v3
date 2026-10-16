@@ -120,15 +120,23 @@ def chase(included: list[dict], fetch: Fetch = _get, forward: bool = True) -> tu
     return kept, unresolved
 
 
-def seed_recall(results: list[dict], seeds_bib: str) -> dict:
-    """Which seed papers (from the seed .bib) the test search found, matched by DOI or title."""
+def seed_list(seeds_bib: str) -> list[dict]:
+    """Seed papers from a .bib: key, normalized DOI and title, raw title, arXiv id."""
     from .bib import entries
     seeds = []
     for key, entry in entries(seeds_bib).items():
         doi = re.search(r"\bdoi\s*=\s*[{\"]([^}\"]+)", entry, re.I)
         title = re.search(r"\btitle\s*=\s*[{\"](.+?)[}\"]\s*,", entry, re.I | re.S)
+        ax = re.search(r"(?:\beprint\s*=\s*[{\"]|arxiv\.org/abs/)(\d{4}\.\d{4,5})", entry, re.I)
+        raw = " ".join(title.group(1).replace("{", "").replace("}", "").split()) if title else ""
         seeds.append({"key": key, "doi": records.norm_doi(doi.group(1)) if doi else "",
-                      "title": records.norm_title(title.group(1)) if title else ""})
+                      "title": records.norm_title(raw) if raw else "", "raw_title": raw, "arxiv": ax.group(1) if ax else ""})
+    return seeds
+
+
+def seed_recall(results: list[dict], seeds_bib: str) -> dict:
+    """Which seed papers (from the seed .bib) the test search found, matched by DOI or title."""
+    seeds = seed_list(seeds_bib)
     dois = {records.norm_doi(r.get("doi")) for r in results if r.get("doi")}
     titles = {records.norm_title(r.get("title")) for r in results}
     hit = [s["key"] for s in seeds if (s["doi"] and s["doi"] in dois) or (s["title"] and s["title"] in titles)]

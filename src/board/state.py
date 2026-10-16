@@ -128,7 +128,8 @@ def mark(root: Path, board: dict, graph: dict, nid: str, event: str, *, option: 
     events = read_events(root)
     st = statuses(graph, events)
     n = graph["nodes"][nid]
-    if event in ("start", "done") and st[nid] not in ("ready", "doing"):
+    allowed = ("ready", "doing", "failed") if event == "start" else ("ready", "doing")  # start on failed = retry
+    if event in ("start", "done") and st[nid] not in allowed:
         raise ValueError(f"{nid} is {st[nid]}, not ready")
     rec = {"node": nid, "event": event}
     if note:

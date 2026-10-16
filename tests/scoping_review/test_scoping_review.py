@@ -529,3 +529,20 @@ def test_archive_hashes_review_and_manuscript(tmp_path):
     shutil.copy(OA / "hilkenmeier_2026.pdf", tmp_path / "manuscript" / "main.pdf")
     m = submission.archive(tmp_path, tmp_path / "out" / "manifest.json")
     assert set(m["files"]) == {"review/board_state.jsonl", "manuscript/main.pdf"} and m["ledgers"] == ["review/board_state.jsonl"]
+
+
+def test_test_search_needs_exactly_one_query_line(tmp_path):
+    strat = tmp_path / "primary.txt"
+    strat.write_text('# source: openalex\n# 1 population\n"large language model" AND "AI scientist"\n"second query"\n')
+    with pytest.raises(SystemExit, match="exactly one uncommented query line, found 2"):
+        cli.main(["test-search", "--strategy", str(strat), "--source", "openalex", "--seeds", str(tmp_path / "s.bib"),
+                  "--out", str(tmp_path / "t.json")])
+
+
+def test_same_title_accepts_subtitles_and_rejects_another_paper():
+    from src.scoping_review.sources import _same_title
+    # real pairs from the 2026-10-16 pilot: the seed's title vs the title OpenAlex holds for its DOI
+    assert _same_title("A Survey of AI Scientists: Surveying the Automatic Scientists and Research", "A Survey of AI Scientists")
+    assert _same_title("Autonomous Chemical Research with Large Language Models", "Autonomous chemical research with large language models")
+    assert not _same_title("Evaluating Sakana's AI Scientist: Bold Claims, Mixed Results, and a Promising Future?",
+                           "Large Language Models as Search Engines: Societal Challenges")

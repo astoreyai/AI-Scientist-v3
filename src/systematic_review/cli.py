@@ -219,7 +219,7 @@ def cmd_search_lint(args) -> int:
     """P2.12: MECIR C32 (no NOT operator) and C33 (controlled vocabulary + free text) checks."""
     problems = []
     for f in sorted(Path(args.dir).glob("*.txt")):
-        text = f.read_text()
+        text = "\n".join(x for x in f.read_text().splitlines() if not x.lstrip().startswith("#"))  # comments are documentation
         if re.search(r"\bNOT\b", text):
             problems.append(f"{f.name}: uses NOT (MECIR C32)")
         if f.stem in ("pubmed", "medline", "embase", "europepmc") and not re.search(r"\[(MeSH|mh|Mesh Terms)\]|/exp|exp |MESH:", text, re.I):

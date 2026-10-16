@@ -98,7 +98,7 @@ def run(board: dict, graph: dict, root: Path, nid: str, *, agent: str, model: st
         raise ValueError(f"{nid} is a {n['exec']} node: run it as written on its card: {n['run']}")
     events = state.read_events(root)
     st = state.statuses(graph, events)[nid]
-    if st not in ("ready", "doing"):
+    if st not in ("ready", "doing", "failed"):  # failed: a retry after repair
         raise ValueError(f"{nid} is {st}, not ready")
     it = state.iteration(events, n["parent"]) if n.get("parent") else 1
     inputs, outputs = io_paths(root, board, graph, nid, it)
@@ -118,7 +118,7 @@ def run(board: dict, graph: dict, root: Path, nid: str, *, agent: str, model: st
         return {"node": nid, "prompt": str(run_dir / "prompt.md"), "command": cmd, "dry_run": True}
 
     in_hashes = {p: _sha(root / p.split("#")[0]) for p in inputs.values()}
-    if st == "ready":
+    if st in ("ready", "failed"):
         state.mark(root, board, graph, nid, "start")
     with (run_dir / "agent.log").open("w") as log:
         rc = subprocess.run(cmd, cwd=root, stdout=log, stderr=subprocess.STDOUT).returncode

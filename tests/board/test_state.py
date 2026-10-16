@@ -130,3 +130,15 @@ def test_systematic_review_board_is_valid_and_routes_scoping_questions_away(tmp_
     state.mark(tmp_path, sr, g, "P0.05", "done", option="scoping")  # a mapping question belongs on the scoping board
     st = state.statuses(g, state.read_events(tmp_path))
     assert st["P0.06"] == st["S7.02"] == st["GR.03"] == "skipped"
+
+
+def test_failed_node_can_be_retried_but_not_marked_done_directly(tmp_path):
+    done(tmp_path, "P0.01")
+    state.mark(tmp_path, BOARD, GRAPH, "P0.02", "fail", note="wrong database")
+    with pytest.raises(ValueError, match="failed, not ready"):
+        state.mark(tmp_path, BOARD, GRAPH, "P0.02", "done")
+    state.mark(tmp_path, BOARD, GRAPH, "P0.02", "start", note="retry")
+    assert state.statuses(GRAPH, state.read_events(tmp_path))["P0.02"] == "doing"
+    produce(tmp_path, "P0.02")
+    state.mark(tmp_path, BOARD, GRAPH, "P0.02", "done")
+    assert "P0.03" in ready(tmp_path)

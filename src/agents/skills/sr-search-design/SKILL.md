@@ -16,10 +16,14 @@ truncation and spelling variants), `controlled` vocabulary per database where on
 Emtree, ACM CCS, IEEE thesaurus), and `source` for each term (seed paper, thesaurus, prior review).
 
 # Mode `primary` (P2.04)
-Write `review/search/primary.txt` for ONE primary database chosen for the field (MEDLINE/PubMed
-for health; Scopus for CS/AI when available, else OpenAlex). Use numbered lines, one concept
-block per line, combined with Boolean operators on a final line. Record limits and filters with
-a reason for each.
+Write `review/search/primary.txt` for ONE primary database the pipeline can run, unless the team
+has recorded access to another (in `review/team.yaml` or `review/decisions.yaml`): `pubmed` for
+health, `openalex` for CS/AI and most other fields; the runnable sources are the keys of `ADAPTERS`
+in `src/scoping_review/sources.py`. Format, so that `agsci sr test-search` can run it:
+- `#` comment lines for everything a reader needs: `# source: <adapter key>`, each concept block
+  on its own numbered comment line, the combination, and every limit or filter with its reason;
+- exactly ONE uncommented line: the complete query in that source's own syntax (OpenAlex: Boolean
+  AND/OR/NOT with quoted phrases, no wildcards because it stems; dates go in the run, not the query).
 
 # Mode `press` (P2.05b, only when board decision P0.08 == no)
 Review `review/search/primary.txt` against the six PRESS elements: translation of the question;
@@ -32,6 +36,7 @@ disclosed in Methods as AI-performed PRESS review.
 Inputs: `review/search/press.md`, `review/search/test_run.json` (hit counts and missed seed
 papers). Edit `primary.txt` to fix every `revision required` item and to recover each missed seed
 paper. A missed seed reveals a missing synonym; add the synonym rather than the paper's title words.
+Keep the `primary` format: comment lines plus exactly one runnable query line.
 Append a dated entry to `review/search/changes.md` for every edit.
 
 # Mode `translate` (P2.11)
