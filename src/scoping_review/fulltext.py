@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import records
-from .sources import _get
+from .sources import NotFound, _get
 
 Fetch = Callable[[str], bytes]
 OPENALEX = "https://api.openalex.org/works"
@@ -35,7 +35,7 @@ def openalex_work(rec: dict, fetch: Fetch = _get) -> dict | None:
         return None
     try:
         return json.loads(fetch(f"{OPENALEX}/{urllib.parse.quote(key, safe=':/')}"))
-    except Exception:  # a record OpenAlex does not know is reported as not found, not guessed
+    except NotFound:  # a record OpenAlex does not know; rate limits and outages still raise
         return None
 
 

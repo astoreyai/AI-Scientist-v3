@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 TOOL = "agsci-sr"
 # Polite-pool contact for OpenAlex/Crossref/NCBI; sent only when the operator sets it.
 CONTACT = os.environ.get("AGSCI_CONTACT_EMAIL", "")
+# Without a key OpenAlex allows a small free daily budget per IP address (about 100 searches).
+OPENALEX_KEY = os.environ.get("OPENALEX_API_KEY", "")
 UA = {"User-Agent": f"{TOOL}/1.0" + (f" (mailto:{CONTACT})" if CONTACT else "")}
 
 
@@ -31,25 +33,41 @@ class FetchError(RuntimeError):
     pass
 
 
+class NotFound(FetchError):
+    pass
+
+
 def _get(url: str, timeout: int = 60, tries: int = 3) -> bytes:
+    if OPENALEX_KEY and url.startswith("https://api.openalex.org/") and "api_key=" not in url:
+        url += ("&" if "?" in url else "?") + "api_key=" + urllib.parse.quote(OPENALEX_KEY)
     last = None
     for i in range(tries):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
                 return r.read()
         except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise NotFound(f"not found: {url.split('api_key=')[0][:120]}") from e
             last = e
             # 429/503 are rate limits: honor Retry-After, else back off far longer than for faults
             wait = int(e.headers.get("Retry-After", "0") or 0) if e.code in (429, 503) else 0
+            if wait > 300:  # a daily budget, not a burst limit: waiting hours inside a run is a hang
+                raise FetchError(f"rate limited for {wait // 3600}h{wait % 3600 // 60:02d}m by {url.split('/')[2]}"
+                                 + ("; set OPENALEX_API_KEY" if "openalex" in url and not OPENALEX_KEY else "")) from e
             time.sleep(wait or (15 * (i + 1) if e.code in (429, 503) else 1.5 * (i + 1)))
         except Exception as e:  # network errors of every kind are retried, then surfaced
             last = e
             time.sleep(1.5 * (i + 1))
-    raise FetchError(f"GET failed after {tries} tries: {last} ({url[:120]})")
+    raise FetchError(f"GET failed after {tries} tries: {last} ({url.split('api_key=')[0][:120]})")
 
 
 def _contact(params: dict, key: str) -> dict:
     return {**params, key: CONTACT} if CONTACT else params
+
+
+def _oa(params: dict) -> dict:
+    """OpenAlex query parameters (the API key, when set, is added by _get for every OpenAlex URL)."""
+    return _contact(params, "mailto")
 
 
 def pubmed(query: str, cap: int, since: str = "") -> list[dict]:
@@ -113,7 +131,7 @@ def openalex(query: str, cap: int, since: str = "") -> list[dict]:
     out, cursor = [], "*"
     flt = "title_and_abstract.search:" + query + (f",from_publication_date:{since}" if since else "")
     while len(out) < cap and cursor:
-        p = _contact({"filter": flt, "per-page": min(200, cap), "cursor": cursor}, "mailto")
+        p = _oa({"filter": flt, "per-page": min(200, cap), "cursor": cursor})
         d = json.loads(_get(base + "?" + urllib.parse.urlencode(p), timeout=90))
         res = d.get("results", [])
         if not res:
@@ -210,7 +228,7 @@ def openalex_seed_recall(query: str, seeds: list[dict], since: str = "") -> dict
     from .records import norm_title
     base = "https://api.openalex.org/works?"
     def works(flt: str, per: int = 50) -> dict:
-        return json.loads(_get(base + urllib.parse.urlencode(_contact({"filter": flt, "per-page": per, "select": "id,doi,title"}, "mailto")), timeout=90))
+        return json.loads(_get(base + urllib.parse.urlencode(_oa({"filter": flt, "per-page": per, "select": "id,doi,title"})), timeout=90))
     date = f",from_publication_date:{since}" if since else ""
     ids, unresolved = {}, []
     for s in seeds:
@@ -229,7 +247,7 @@ def openalex_seed_recall(query: str, seeds: list[dict], since: str = "") -> dict
             ids[s["key"]] = wid
         else:
             unresolved.append(s["key"])
-    total = json.loads(_get(base + urllib.parse.urlencode(_contact({"filter": "title_and_abstract.search:" + query + date, "per-page": 1}, "mailto")), timeout=90))["meta"]["count"]
+    total = json.loads(_get(base + urllib.parse.urlencode(_oa({"filter": "title_and_abstract.search:" + query + date, "per-page": 1})), timeout=90))["meta"]["count"]
     hit_ids = set()
     if ids:
         res = works("title_and_abstract.search:" + query + date + ",ids.openalex:" + "|".join(ids.values()), 50)["results"]

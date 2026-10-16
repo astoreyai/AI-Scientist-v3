@@ -546,3 +546,15 @@ def test_same_title_accepts_subtitles_and_rejects_another_paper():
     assert _same_title("Autonomous Chemical Research with Large Language Models", "Autonomous chemical research with large language models")
     assert not _same_title("Evaluating Sakana's AI Scientist: Bold Claims, Mixed Results, and a Promising Future?",
                            "Large Language Models as Search Engines: Societal Challenges")
+
+
+def test_openalex_work_reports_not_found_but_raises_on_rate_limit():
+    from src.scoping_review.sources import FetchError, NotFound
+    rec = {"id": "x", "doi": "10.1145/3769733.3769747"}
+    def gone(url):
+        raise NotFound(url)
+    def limited(url):  # the 2026-10-16 pilot exhausted the keyless OpenAlex budget this way
+        raise FetchError("rate limited for 9h18m by api.openalex.org; set OPENALEX_API_KEY")
+    assert fulltext.openalex_work(rec, gone) is None
+    with pytest.raises(FetchError, match="rate limited"):
+        fulltext.openalex_work(rec, limited)
