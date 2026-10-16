@@ -58,7 +58,13 @@ def fetch_template(url: str | None, out: Path, fetch=None) -> list[str]:
     """Download the journal's LaTeX template (zip or single file) into out/template/."""
     if not url:
         raise ValueError("the journal profile has no latex_template_url; use the generic article template from `agsci sr assemble`")
-    data = fetch(url) if fetch else urllib.request.urlopen(url, timeout=120).read()
+    if fetch is None:
+        from .sources import UA  # some journal sites drop Python's default User-Agent (jair.org does)
+        data = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120).read()
+    else:
+        data = fetch(url)
+    if data.lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
+        raise ValueError(f"{url} returned a web page, not a template: set latex_template_url to the download link")
     dest = out / "template"
     dest.mkdir(parents=True, exist_ok=True)
     if data[:2] == b"PK":

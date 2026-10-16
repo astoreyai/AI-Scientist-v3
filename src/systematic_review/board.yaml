@@ -331,7 +331,7 @@ nodes:
   options:
   - continue
   - stop
-  criterion: stop if a published or registered review covers the same PCC within the last 3 years; continue with a stated differentiation otherwise
+  criterion: stop if a published or registered review covers the same PICO within the last 3 years; continue with a stated differentiation otherwise
   in:
   - prior_reviews
   out:
@@ -433,7 +433,7 @@ nodes:
   options:
   - accept_top_ranked
   - choose_other
-  criterion: scope fit, accepts scoping reviews, AI-use policy allows a disclosed AI second reviewer, OA/APC acceptable
+  criterion: scope fit, publishes systematic reviews, AI-use policy allows a disclosed AI second reviewer, OA/APC acceptable
   in:
   - journal_shortlist
   out:
@@ -1994,7 +1994,7 @@ nodes:
 - id: P9.07
   lane: P9
   kind: task
-  title: Draft structured abstract and title ("scoping review" in title)
+  title: Draft structured abstract and title ("systematic review" in title, PRISMA 2020 item 1)
   exec: agent
   impl: exists
   skill: sr-draft
@@ -2684,7 +2684,7 @@ nodes:
   title: Deposit review data on the OSF project
   exec: human
   impl: human
-  run: upload search strings, search log, dedup log, screening decisions (human + AI), charting dataset, code
+  run: upload search strings, search log, dedup log, screening decisions (human + AI), extraction dataset, code
   in:
   - osf_registration
   - chart_frozen

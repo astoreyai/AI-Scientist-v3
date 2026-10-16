@@ -491,6 +491,13 @@ def test_template_refuses_when_profile_has_no_url(tmp_path):
         submission.fetch_template(JAIR["candidates"][0]["profile"]["latex_template_url"], tmp_path)
 
 
+def test_template_refuses_a_web_page(tmp_path):
+    page = (FIX / "jair_formatting_2026-10-16.html").read_bytes()  # real jair.org formatting page
+    with pytest.raises(ValueError, match="returned a web page"):
+        submission.fetch_template("https://www.jair.org/index.php/jair/formatting", tmp_path, fetch=lambda u: page)
+    assert not (tmp_path / "template").exists()
+
+
 @needs_aisr
 def test_supplement_from_real_artifacts(tmp_path):
     form = [{"id": f["field_name"], "label": f["description"], "guidance": f.get("extraction_guidance", "")}
