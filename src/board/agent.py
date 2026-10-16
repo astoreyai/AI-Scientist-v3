@@ -36,7 +36,11 @@ def io_paths(root: Path, board: dict, graph: dict, nid: str, it: int) -> tuple[d
     return {a: fix(p) for a, p in src.items()}, {a: fix(p) for a, p in dst.items()}
 
 
-def build_prompt(board: dict, graph: dict, nid: str, inputs: dict, outputs: dict, it: int) -> str:
+RETROFIT = "review/retrofit.md"  # optional: earlier work on this review that agents should reuse
+
+
+def build_prompt(board: dict, graph: dict, nid: str, inputs: dict, outputs: dict, it: int,
+                 repo: str = REPO_MOUNT, retrofit: bool = False) -> str:
     n = graph["nodes"][nid]
     skill = (SKILLS_DIR / n["skill"] / "SKILL.md").read_text()
     lines = [
@@ -45,18 +49,23 @@ def build_prompt(board: dict, graph: dict, nid: str, inputs: dict, outputs: dict
         + (f" Loop iteration: {it}." if n.get("parent") else ""),
         "",
         "Your working directory is the review project root. Paths below are relative to it.",
-        f"Repository files (skills, schemas, scripts) are read-only under `{REPO_MOUNT}/`; a path that",
-        f"starts with `src/` in the skill means `{REPO_MOUNT}/src/`.",
+        f"Repository files (skills, schemas, scripts) are read-only under `{repo}/`; a path that",
+        f"starts with `src/` in the skill means `{repo}/src/`.",
         "",
         "## Inputs (read these; do not modify them)",
         *[f"- `{a}`: `{p}`" for a, p in inputs.items()],
         "",
+        *(["## Earlier work on this review",
+            f"`{RETROFIT}` lists artifacts from an earlier run of this review. Read the ones relevant to this",
+            "node and reuse what holds; say in your output what you kept, changed or dropped, and why.", ""]
+          if retrofit else []),
         "## Outputs (write exactly these)",
         *[f"- `{a}`: `{p}`" for a, p in outputs.items()],
         "",
         "## Rules for every board node",
         "- Use only the inputs above and sources you actually open. Never invent records, numbers, quotes or citations.",
         "- Write only the outputs above. Do not edit `review/board_state.jsonl`, `review/ai_ledger.jsonl` or `review/decisions.yaml`.",
+        "- Any time you record must be the real clock time (`date -u +%FT%TZ`), never a made-up one.",
         "- If an input is missing or the task cannot be done honestly, write nothing and explain why in your final message.",
         "",
         "---",
@@ -94,9 +103,13 @@ def run(board: dict, graph: dict, root: Path, nid: str, *, agent: str, model: st
     it = state.iteration(events, n["parent"]) if n.get("parent") else 1
     inputs, outputs = io_paths(root, board, graph, nid, it)
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_dir = root / "review" / "agent_runs" / f"{nid}_{it}_{stamp}"
+    base = root / "review" / "agent_runs" / f"{nid}_{it}_{stamp}"
+    run_dir, k = base, 1
+    while run_dir.exists():  # two runs of one node in the same second
+        run_dir, k = base.with_name(f"{base.name}_{k}"), k + 1
     run_dir.mkdir(parents=True)
-    prompt = build_prompt(board, graph, nid, inputs, outputs, it)
+    prompt = build_prompt(board, graph, nid, inputs, outputs, it, repo=str(REPO) if native else REPO_MOUNT,
+                          retrofit=(root / RETROFIT).exists())
     (run_dir / "prompt.md").write_text(prompt)
     prompt_ref = str((run_dir / "prompt.md").resolve()) if native else f"{WORK}/{(run_dir / 'prompt.md').relative_to(root)}"
     cmd = command(prompt_ref, agent, model, native, root, env_file)

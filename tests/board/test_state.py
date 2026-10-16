@@ -102,6 +102,17 @@ def test_run_dry_run_builds_prompt_from_skill_and_resolved_paths(tmp_path):
         agent.run(BOARD, GRAPH, tmp_path, "P0.01", agent="claude", model=None, dry_run=True)
 
 
+def test_native_prompt_points_at_host_repo_and_lists_retrofit(tmp_path):
+    from src.board import agent
+    done(tmp_path, "P0.01")
+    container = Path(agent.run(BOARD, GRAPH, tmp_path, "P0.02", agent="claude", model=None, dry_run=True)["prompt"]).read_text()
+    assert "under `/repo/`" in container and "Earlier work" not in container
+    (tmp_path / agent.RETROFIT).write_text("- phase1/research_questions.md\n")
+    native = Path(agent.run(BOARD, GRAPH, tmp_path, "P0.02", agent="claude", model=None, native=True, dry_run=True)["prompt"]).read_text()
+    assert f"under `{agent.REPO}/`" in native and "/repo/" not in native
+    assert "Earlier work on this review" in native and "`review/retrofit.md`" in native
+
+
 def test_systematic_review_board_is_valid_and_routes_scoping_questions_away(tmp_path):
     sr = load(REPO / "src/systematic_review/board.yaml")
     errs, g = analyze(sr)
