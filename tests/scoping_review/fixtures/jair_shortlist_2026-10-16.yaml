@@ -1,0 +1,37 @@
+# Real requirement profile recorded from https://www.jair.org/index.php/jair/about/submissions
+# on 2026-10-16T03:15Z. Fields the page does not state are null and listed under `unverified`.
+generated_utc: "2026-10-16T03:15:26Z"
+candidates:
+  - rank: 1
+    profile:
+      name: Journal of Artificial Intelligence Research
+      publisher: AI Access Foundation
+      guidelines_url: https://www.jair.org/index.php/jair/about/submissions
+      retrieved_utc: "2026-10-16T03:15:26Z"
+      accepts_scoping_reviews: true
+      reporting_checklist: none_stated
+      checklist_with_page_numbers: false
+      protocol_registration_required: false
+      word_limit: null
+      abstract_word_limit: null
+      abstract_structure: null
+      max_figures: null
+      max_tables: null
+      max_references: null
+      citation_style: JAIR LaTeX style
+      latex_template_url: null
+      graphical_abstract: "no"
+      highlights: "no"
+      preprint_policy: "arXiv and similar services allowed, with JAIR volume, pages and DOI added after publication"
+      ai_policy:
+        url: https://www.jair.org/index.php/jair/about/submissions
+        ai_screening_allowed_with_disclosure: null
+        notes: "AI may assist with editing, ideas or analysing data; core contributions must come from the authors; AI cannot be an author or a cited source; all AI use must be reviewed for accuracy and attribution. Screening is not addressed explicitly."
+      open_access: "All articles open access, CC BY"
+      apc_usd: null
+      other_required_items: ["structured abstract", "reproducibility checklist appended from the JAIR LaTeX template (desk rejection without it)", "survey must contribute an analysis or perspective, not merely summarise"]
+    fit: {scope: 3, notes: "surveys track; scoping review must add analysis beyond mapping"}
+    unverified:
+      - "word and page limits: not stated on the submissions page"
+      - "LaTeX template URL: described in the Instructions for Final Preparation guide, not linked on the submissions page"
+      - "APC: not stated on the submissions page"

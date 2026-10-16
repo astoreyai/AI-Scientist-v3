@@ -1,0 +1,68 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "Record",
+ "description": "One deduplicated bibliographic record. id is source-prefixed (doi:, pmid:, openalex:, s2:, arxiv:).",
+ "type": "object",
+ "required": [
+  "id",
+  "title",
+  "year",
+  "source"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "minLength": 1,
+   "pattern": "^(doi|pmid|openalex|s2|arxiv|grey):"
+  },
+  "title": {
+   "type": "string",
+   "minLength": 1
+  },
+  "authors": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "year": {
+   "type": [
+    "integer",
+    "string"
+   ]
+  },
+  "venue": {
+   "type": "string"
+  },
+  "doi": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "abstract": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "source": {
+   "type": "string",
+   "minLength": 1,
+   "description": "database the record came from"
+  },
+  "query_id": {
+   "type": "string"
+  },
+  "retrieved_utc": {
+   "type": "string"
+  },
+  "merged_ids": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "ids folded into this record by dedup"
+  }
+ }
+}

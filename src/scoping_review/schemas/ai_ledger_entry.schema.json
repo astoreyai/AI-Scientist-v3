@@ -1,0 +1,57 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "AiLedgerEntry",
+ "description": "One AI action, appended to review/ai_ledger.jsonl (joint statement 2025: tool, version, dates, validation).",
+ "type": "object",
+ "required": [
+  "node",
+  "tool",
+  "model",
+  "utc",
+  "inputs",
+  "outputs"
+ ],
+ "properties": {
+  "node": {
+   "type": "string",
+   "minLength": 1
+  },
+  "tool": {
+   "type": "string",
+   "minLength": 1
+  },
+  "model": {
+   "type": "string",
+   "minLength": 1
+  },
+  "model_version": {
+   "type": "string"
+  },
+  "utc": {
+   "type": "string",
+   "minLength": 1
+  },
+  "prompt_sha256": {
+   "type": "string"
+  },
+  "inputs": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "string"
+   },
+   "description": "path -> sha256"
+  },
+  "outputs": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "string"
+   }
+  },
+  "human_reviewer": {
+   "type": [
+    "string",
+    "null"
+   ]
+  }
+ }
+}

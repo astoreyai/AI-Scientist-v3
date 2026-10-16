@@ -1,0 +1,2040 @@
+# Scoping review as an Atomic Task Graph (research type: scoping_review).
+#
+# Edges are derived, never written: a node depends on whichever node produces an artifact
+# listed in its `in`. Inputs listed again under `optional` may be absent because their producer
+# was skipped; a skipped producer of any other input skips the node too. `when: <decision> == <option>` makes a node conditional; a skipped
+# node counts as done for readiness and its outputs are simply absent downstream.
+# Loop bodies are ordinary nodes with `parent:`; their outputs never leave the loop, and the
+# loop node's own `out` is its external interface.
+#
+# exec: script (deterministic code) | agent (AI agent, logged to the AI-use ledger)
+#       | skill (host Claude skill) | human | ai+human (AI drafts, a human decides)
+# impl: exists (path named in run) | new (module this plan builds) | human
+#
+# Validate and render:  agsci board check src/scoping_review/board.yaml
+
+meta:
+  title: Scoping review — atomic task graph
+  research_type: scoping_review
+  version: 1
+  summary: >-
+    End-to-end scoping review from topic choice to publication. Screening uses an AI second
+    reviewer with a human adjudicator (Phase-0 decision, 2026-10-15). Thresholds live in
+    `thresholds` with their sources so a reviewer can audit every gate.
+  givens: []
+  thresholds:
+    pilot_ta_sample: {value: 25, unit: records, source: "JBI Manual 10.2.7.1 https://jbi-global.atlassian.net/wiki/spaces/MANUAL/pages/2049540102"}
+    pilot_ta_agreement: {value: 0.75, unit: proportion, source: "JBI Manual 10.2.7.1 (start full screening only at >= 75% agreement)"}
+    pilot_chart_sources: {value: 3, unit: sources per source type, source: "JBI Manual 10.2.9.2 (at least 2-3 per evidence source type)"}
+    pilot_chart_agreement: {value: 0.8, unit: proportion of fields, source: "project choice; JBI sets no number"}
+    seed_recall: {value: 0.9, unit: proportion, source: "project choice; reported, not a published standard"}
+    al_trigger_records: {value: 3000, unit: records, source: "project choice; stopping rule = SAFE (Boetje & van de Schoot 2024, Syst Rev 13:81)"}
+    search_age_months: {value: 12, unit: months, source: "Cochrane MECIR C37 by analogy (re-run within 12 months, preferably 6); JBI 10.4 updates every 2-3 years"}
+    dedup_check_pairs: {value: 50, unit: merged pairs, source: "project choice"}
+    review_rounds: {value: 3, unit: rounds, source: "project choice (fold cycles introduce regressions; mays/013 history)"}
+  paths:  # artifact -> location under the review root; "#key" = entry in a file; {iter} = loop iteration
+    topic_idea: "review/topic.md"
+    prior_reviews: "review/prior_reviews.json"
+    dup_decision: "review/decisions.yaml#P0.03"
+    pcc_draft: "review/pcc.md"
+    review_type_decision: "review/decisions.yaml#P0.05"
+    pcc_final: "review/pcc.md"
+    team: "review/team.yaml"
+    librarian_decision: "review/decisions.yaml#P0.08"
+    journal_shortlist: "review/journal_shortlist.yaml"
+    journal_choice: "review/journal_choice.yaml"
+    journal_profile: "review/journal_profile.yaml"
+    reporting_std: "review/decisions.yaml#P1.04"
+    tex_template: "manuscript/"
+    eligibility: "review/eligibility.md"
+    term_list: "review/terms.yaml"
+    seed_set: "review/seed_set.bib"
+    search_strings: "review/search/primary.txt"
+    primary_strategy: "review/search/primary.txt"
+    test_run: "review/search/test_run.json"
+    press_report: "review/search/press.md"
+    search_strings_rev: "review/search/primary.txt"
+    search_final: "review/search/"
+    charting_form_v0: "review/charting_form.yaml"
+    ai_reviewer_spec: "review/ai_reviewer.yaml"
+    protocol: "review/protocol.md"
+    protocol_reviewed: "review/protocol.md"
+    protocol_review: "review/reviews/protocol_{iter}.md"
+    protocol_rev: "review/protocol.md"
+    protocol_frozen: "review/protocol.md"
+    protocol_pub_decision: "review/decisions.yaml#P3.01"
+    osf_registration: "review/registration.yaml"
+    protocol_submission: "review/registration.yaml"
+    deviations_log: "review/ledger.jsonl"
+    raw_records: "review/records/raw/"
+    search_log: "review/search_log.json"
+    grey_decision: "review/decisions.yaml#P4.02"
+    grey_records: "review/records/raw/grey.jsonl"
+    records_dedup: "review/records/dedup.jsonl"
+    dedup_log: "review/records/dedup_log.json"
+    dedup_ok: "review/records/dedup_check.jsonl"
+    al_decision: "review/decisions.yaml#P4.06"
+    screening_guide: "review/screening_guide.md"
+    screening_guide_final: "review/screening_guide.md"
+    calibration_report: "review/screen/calibration.json"
+    pilot_sample: "review/screen/pilot_{iter}.jsonl"
+    human_pilot: "review/screen/human_pilot_{iter}.jsonl"
+    ai_pilot: "review/screen/ai_pilot_{iter}.jsonl"
+    pilot_agreement: "review/screen/pilot_agreement_{iter}.json"
+    guide_rev: "review/screening_guide.md"
+    ai_ta: "review/screen/ai_ta.jsonl"
+    human_ta: "review/screen/human_ta.jsonl"
+    ta_conflicts: "review/screen/ta_conflicts.jsonl"
+    ta_kappa: "review/screen/ta_agreement.json"
+    ta_decisions: "review/screen/ta_final.jsonl"
+    ta_included: "review/screen/ta_included.jsonl"
+    fulltext_oa: "review/fulltext/"
+    retrieval_log: "review/fulltext/retrieval_log.json"
+    fulltext_manual: "review/fulltext/manual/"
+    not_retrieved: "review/fulltext/not_retrieved.jsonl"
+    fulltext_md: "review/fulltext_md/"
+    ai_ft: "review/screen/ai_ft.jsonl"
+    human_ft: "review/screen/human_ft.jsonl"
+    ft_conflicts: "review/screen/ft_conflicts.jsonl"
+    ft_kappa: "review/screen/ft_agreement.json"
+    ft_decisions: "review/screen/ft_final.jsonl"
+    chase_included: "review/chase/included.jsonl"
+    chase_log: "review/chase/log.json"
+    chase_candidates: "review/chase/candidates_{iter}.jsonl"
+    chase_new: "review/chase/new_{iter}.jsonl"
+    chase_ai: "review/chase/ai_{iter}.jsonl"
+    chase_round: "review/chase/final_{iter}.jsonl"
+    included_final: "review/included.jsonl"
+    prisma_counts: "review/prisma_counts.json"
+    charting_form_final: "review/charting_form.yaml"
+    chart_pilot: "review/chart/pilot_{iter}/"
+    chart_pilot_agreement: "review/chart/pilot_agreement_{iter}.json"
+    charting_form_rev: "review/charting_form.yaml"
+    ai_chart: "review/chart/ai.jsonl"
+    chart_verified: "review/chart/verified.jsonl"
+    appraisal_decision: "review/decisions.yaml#P7.04"
+    appraisal: "review/chart/appraisal.jsonl"
+    consult_decision: "review/decisions.yaml#P7.06"
+    irb_decision: "review/decisions.yaml#P7.07"
+    irb_approval: "review/ethics/"
+    consult_notes: "review/consultation.md"
+    chart_frozen: "review/chart/verified.jsonl"
+    stats: "review/synthesis/stats.json"
+    codebook: "review/synthesis/codebook.yaml"
+    coded: "review/synthesis/coded.jsonl"
+    coded_verified: "review/synthesis/coded_verified.jsonl"
+    gap_map: "review/synthesis/gap_map.json"
+    synthesis: "review/synthesis/synthesis.md"
+    claims_ledger: "review/synthesis/claims_grounding.json"
+    fig_prisma: "manuscript/figures/prisma.pdf"
+    fig_timeline: "manuscript/figures/timeline.pdf"
+    fig_gapmap: "manuscript/figures/gapmap.pdf"
+    fig_geo: "manuscript/figures/geo.pdf"
+    fig_alluvial: "manuscript/figures/categories.pdf"
+    tab_characteristics: "manuscript/tables/characteristics.tex"
+    ga_decision: "review/decisions.yaml#P8.13"
+    fig_concept: "manuscript/figures/concept.pdf"
+    figures_final: "manuscript/figures/"
+    figure_audit: "review/figures/audit_{iter}.md"
+    figures_rev: "manuscript/figures/"
+    synthesis_ok: "review/synthesis/audit.json"
+    outline: "manuscript/outline.md"
+    sec_methods: "manuscript/sections/methods.tex"
+    sec_results: "manuscript/sections/results.tex"
+    sec_intro: "manuscript/sections/introduction.tex"
+    sec_discussion: "manuscript/sections/discussion.tex"
+    sec_conclusion: "manuscript/sections/conclusion.tex"
+    sec_abstract: "manuscript/sections/abstract.tex"
+    sec_declarations: "manuscript/sections/declarations.tex"
+    supplement: "manuscript/supplement/"
+    ms_v1: "manuscript/"
+    grounding_ok_v1: "review/audit/grounding_v1.json"
+    refs_included: "manuscript/refs_included.bib"
+    refs_background: "manuscript/refs_background.bib"
+    references: "manuscript/references.bib"
+    ref_report: "review/refs/integrity.md"
+    retraction_report: "review/refs/retractions.json"
+    citation_support: "review/refs/citation_support.md"
+    refs_ok: "review/refs/ok.json"
+    ms_dev: "manuscript/"
+    ms_flow: "manuscript/"
+    ms_sentence: "manuscript/"
+    ms_voice: "manuscript/"
+    ms_edited: "manuscript/"
+    edit_ok: "review/audit/edit.json"
+    ms_reviewed: "manuscript/"
+    review_ledger: "review/reviews/ledger.yaml"
+    review_journal: "review/reviews/round_{iter}/referee.md"
+    review_codex: "review/reviews/round_{iter}/codex.md"
+    ms_folded: "manuscript/"
+    fold_check: "review/reviews/round_{iter}/recheck.json"
+    author_approval: "review/approvals.yaml"
+    ms_typeset_src: "manuscript/"
+    ms_pdf: "manuscript/main.pdf"
+    compile_log: "manuscript/main.log"
+    latex_fix: "manuscript/"
+    inspect_report: "review/layout/inspect.md"
+    visual_report: "review/layout/visual.md"
+    limits_decision: "review/decisions.yaml#P13.05"
+    ms_trimmed: "manuscript/"
+    trim_edit: "manuscript/"
+    trim_check: "review/layout/limits_{iter}.json"
+    layout_ok: "review/layout/ok.json"
+    numbers_report: "review/proof/numbers.txt"
+    proof_auto: "review/proof/auto.md"
+    proof_ai: "review/proof/ai.md"
+    proof_human: "review/proof/human.md"
+    reporting_checklist: "manuscript/supplement/reporting_checklist.pdf"
+    ms_final: "manuscript/main.pdf"
+    update_decision: "review/decisions.yaml#P15.01"
+    ms_updated: "manuscript/main.pdf"
+    cover_letter: "submission/cover_letter.tex"
+    reviewer_suggestions: "submission/reviewers.yaml"
+    highlights: "submission/highlights.txt"
+    preprint_decision: "review/decisions.yaml#P15.06"
+    preprint_doi: "review/registration.yaml"
+    data_deposit: "review/registration.yaml"
+    outbox_package: "submission/package/"
+    submission_record: "review/submission.yaml"
+    decision_letter: "review/journal/decision_{iter}.md"
+    editorial_decision: "review/decisions.yaml#P16.02"
+    ms_accepted_rev: "manuscript/main.pdf"
+    response_matrix: "review/journal/response_{iter}.yaml"
+    triage: "review/journal/response_{iter}.yaml"
+    ms_revised: "manuscript/"
+    response_letter: "review/journal/response_letter_{iter}.tex"
+    resubmission: "review/submission.yaml"
+    ms_accepted_fallback: "manuscript/main.pdf"
+    ms_retargeted: "manuscript/"
+    fallback_submission: "review/submission.yaml"
+    proofs_approved: "review/journal/proofs.md"
+    osf_final: "review/registration.yaml"
+    archive_manifest: "review/archive_manifest.json"
+    published: "review/submission.yaml"
+
+lanes:
+  - {id: P0, name: Topic and go/no-go}
+  - {id: P1, name: Journal targeting}
+  - {id: P2, name: Protocol and search design}
+  - {id: P3, name: Registration}
+  - {id: P4, name: Search execution}
+  - {id: P5, name: Title/abstract screening}
+  - {id: P6, name: Full-text screening}
+  - {id: P7, name: Charting}
+  - {id: P8, name: Synthesis and visualization}
+  - {id: P9, name: Drafting}
+  - {id: P10, name: References}
+  - {id: P11, name: Editing}
+  - {id: P12, name: Internal review}
+  - {id: P13, name: Typesetting and layout}
+  - {id: P14, name: Proofreading}
+  - {id: P15, name: Submission}
+  - {id: P16, name: Peer review and revision}
+  - {id: P17, name: Publication and archiving}
+
+nodes:
+  # ---------------------------------------------------------------- P0 Topic and go/no-go
+  - id: P0.01
+    lane: P0
+    kind: task
+    title: Choose the review topic
+    exec: human
+    impl: human
+    run: "write review/topic.md (one paragraph: phenomenon, why now, intended users)"
+    out: [topic_idea]
+  - id: P0.02
+    lane: P0
+    kind: task
+    title: Search for existing reviews and registered protocols
+    exec: agent
+    impl: exists
+    skill: sr-prior-reviews
+    mode: search
+    run: "agsci board run src/scoping_review/board.yaml P0.02 --root <project>"
+    in: [topic_idea]
+    out: [prior_reviews]
+  - id: P0.03
+    lane: P0
+    kind: decision
+    title: Does an existing or ongoing review already answer this?
+    exec: ai+human
+    impl: human
+    run: "review review/prior_reviews.json; record choice in review/decisions.yaml#P0.03"
+    options: [continue, stop]
+    criterion: "stop if a published or registered review covers the same PCC within the last 3 years; continue with a stated differentiation otherwise"
+    in: [prior_reviews]
+    out: [dup_decision]
+  - id: P0.04
+    lane: P0
+    kind: task
+    title: Draft PCC, objective and review questions
+    exec: agent
+    impl: exists
+    skill: sr-question
+    mode: pcc
+    when: "P0.03 == continue"
+    run: "agsci board run src/scoping_review/board.yaml P0.04 --root <project>"
+    in: [topic_idea, prior_reviews, dup_decision]
+    out: [pcc_draft]
+  - id: P0.05
+    lane: P0
+    kind: decision
+    title: Is a scoping review the right review type?
+    exec: ai+human
+    impl: human
+    run: "check review/pcc.md against the Munn et al. 2018 indications; record in review/decisions.yaml#P0.05"
+    options: [scoping, systematic, other]
+    criterion: "scoping when the aim is to map evidence, clarify concepts or find gaps; systematic when the question is about effectiveness, feasibility or appropriateness (route to systematic_review board)"
+    in: [pcc_draft]
+    out: [review_type_decision]
+  - id: P0.06
+    lane: P0
+    kind: gate
+    title: PCC and questions approved
+    exec: human
+    impl: human
+    when: "P0.05 == scoping"
+    run: "lead reviewer signs review/pcc.md (status: approved)"
+    approver: lead reviewer
+    criterion: "each question maps to P, C and C; scope is answerable with the team's time"
+    in: [pcc_draft, review_type_decision]
+    out: [pcc_final]
+  - id: P0.07
+    lane: P0
+    kind: task
+    title: Assemble team and roles (CRediT)
+    exec: human
+    impl: human
+    run: "write review/team.yaml (lead, adjudicator, librarian if any, co-authors, CRediT roles)"
+    in: [pcc_final]
+    out: [team]
+  - id: P0.08
+    lane: P0
+    kind: decision
+    title: Is a librarian or information specialist available?
+    exec: human
+    impl: human
+    run: "record in review/decisions.yaml#P0.08"
+    options: ["yes", "no"]
+    criterion: "yes if a named person will do PRESS peer review of the search"
+    in: [team]
+    out: [librarian_decision]
+
+  # ---------------------------------------------------------------- P1 Journal targeting
+  - id: P1.01
+    lane: P1
+    kind: task
+    title: Build journal shortlist with requirement profiles
+    exec: agent
+    impl: exists
+    skill: sr-journals
+    mode: shortlist
+    run: "agsci board run src/scoping_review/board.yaml P1.01 --root <project>"
+    in: [pcc_final]
+    out: [journal_shortlist]
+  - id: P1.02
+    lane: P1
+    kind: decision
+    title: Choose primary and fallback journals
+    exec: human
+    impl: human
+    run: "edit review/journal_choice.yaml (primary + 2 ordered fallbacks)"
+    options: [accept_top_ranked, choose_other]
+    criterion: "scope fit, accepts scoping reviews, AI-use policy allows a disclosed AI second reviewer, OA/APC acceptable"
+    in: [journal_shortlist]
+    out: [journal_choice]
+  - id: P1.03
+    lane: P1
+    kind: task
+    title: Compile the journal profile
+    exec: script
+    impl: exists
+    run: "agsci sr journal-profile --shortlist review/journal_shortlist.yaml --choice review/journal_choice.yaml --out review/journal_profile.yaml"
+    in: [journal_choice]
+    out: [journal_profile]
+  - id: P1.04
+    lane: P1
+    kind: decision
+    title: Report with PRISMA-ScR?
+    exec: ai+human
+    impl: human
+    run: "record in review/decisions.yaml#P1.04"
+    options: [prisma_scr, jbi_only]
+    criterion: "prisma_scr when the journal requires it or the protocol commits to it; jbi_only otherwise. Use the version current at submission (2018 checklist current as of 2026-10; update in development, Tricco et al. 2026 J Clin Epidemiol 196:112314)"
+    in: [journal_profile]
+    out: [reporting_std]
+  - id: P1.05
+    lane: P1
+    kind: task
+    title: Fetch the journal LaTeX template, class and bibliography style
+    exec: script
+    impl: exists
+    run: "agsci sr template --profile review/journal_profile.yaml --out manuscript/  (no template URL in the profile: keep the article draft from P9.10 until one is found)"
+    in: [journal_profile]
+    out: [tex_template]
+
+  # ---------------------------------------------------------------- P2 Protocol and search design
+  - id: P2.01
+    lane: P2
+    kind: task
+    title: Draft eligibility criteria
+    exec: agent
+    impl: exists
+    skill: sr-question
+    mode: eligibility
+    run: "agsci board run src/scoping_review/board.yaml P2.01 --root <project>"
+    in: [pcc_final]
+    out: [eligibility]
+  - id: P2.02
+    lane: P2
+    kind: task
+    title: Build concept blocks and term list
+    exec: agent
+    impl: exists
+    skill: sr-search-design
+    mode: terms
+    run: "agsci board run src/scoping_review/board.yaml P2.02 --root <project>"
+    in: [pcc_final, prior_reviews]
+    out: [term_list]
+  - id: P2.03
+    lane: P2
+    kind: task
+    title: Assemble the seed set of known-relevant papers
+    exec: ai+human
+    impl: exists
+    skill: sr-search-design
+    mode: seeds
+    run: "agsci board run src/scoping_review/board.yaml P2.03 --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [pcc_final]
+    out: [seed_set]
+  - id: P2.04
+    lane: P2
+    kind: task
+    title: Draft the primary search strategy (one database)
+    exec: agent
+    impl: exists
+    skill: sr-search-design
+    mode: primary
+    run: "agsci board run src/scoping_review/board.yaml P2.04 --root <project>"
+    in: [term_list, eligibility]
+    out: [search_strings]
+  - id: P2.05
+    lane: P2
+    kind: loop
+    title: Refine the primary strategy until PRESS-clean and seed recall met
+    exec: ai+human
+    impl: exists
+    run: "agsci board start ... P2.05; run body P2.05a-c; agsci board iterate ... P2.05 --note <guard result> until the guard holds, then agsci board done ... P2.05"
+    guard: "PRESS report has 0 'revision required' items and seed recall >= thresholds.seed_recall"
+    bound: 3
+    progress: "PRESS revision items + missed seeds"
+    body: [P2.05a, P2.05b, P2.05c]
+    in: [search_strings, seed_set, librarian_decision]
+    out: [primary_strategy]
+  - id: P2.05a
+    parent: P2.05
+    lane: P2
+    kind: task
+    title: Run test searches and measure seed recall
+    exec: script
+    impl: exists
+    run: "agsci sr test-search --strategy review/search/primary.txt --source <primary source> --seeds review/seed_set.bib --out review/search/test_run.json"
+    in: [search_strings, seed_set]
+    out: [test_run]
+  - id: P2.05b
+    parent: P2.05
+    lane: P2
+    kind: task
+    title: PRESS 2015 peer review of the search
+    exec: ai+human
+    impl: exists
+    skill: sr-search-design
+    mode: press
+    run: "agsci board run src/scoping_review/board.yaml P2.05b --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [test_run, librarian_decision]
+    out: [press_report]
+  - id: P2.05c
+    parent: P2.05
+    lane: P2
+    kind: task
+    title: Revise search strings
+    exec: agent
+    impl: exists
+    skill: sr-search-design
+    mode: revise
+    run: "agsci board run src/scoping_review/board.yaml P2.05c --root <project>"
+    in: [press_report, test_run]
+    out: [search_strings_rev]
+  - id: P2.11
+    lane: P2
+    kind: task
+    title: Translate the PRESS-reviewed strategy to every other source
+    exec: agent
+    impl: exists
+    skill: sr-search-design
+    mode: translate
+    run: "agsci board run src/scoping_review/board.yaml P2.11 --root <project>"
+    in: [primary_strategy, eligibility]
+    out: [search_final]
+  - id: P2.06
+    lane: P2
+    kind: task
+    title: Draft the charting form
+    exec: agent
+    impl: exists
+    skill: sr-protocol
+    mode: charting-form
+    run: "agsci board run src/scoping_review/board.yaml P2.06 --root <project>"
+    in: [pcc_final, eligibility]
+    out: [charting_form_v0]
+  - id: P2.07
+    lane: P2
+    kind: task
+    title: Specify the AI second reviewer (model, version, prompts, logging)
+    exec: agent
+    impl: exists
+    skill: sr-protocol
+    mode: ai-reviewer
+    run: "agsci board run src/scoping_review/board.yaml P2.07 --root <project>"
+    in: [eligibility]
+    out: [ai_reviewer_spec]
+  - id: P2.08
+    lane: P2
+    kind: task
+    title: Write the protocol (JBI template)
+    exec: agent
+    impl: exists
+    skill: sr-protocol
+    mode: protocol
+    run: "agsci board run src/scoping_review/board.yaml P2.08 --root <project>"
+    in: [pcc_final, eligibility, search_final, charting_form_v0, ai_reviewer_spec, reporting_std, team]
+    out: [protocol]
+  - id: P2.09
+    lane: P2
+    kind: loop
+    title: Internal protocol review
+    exec: ai+human
+    impl: exists
+    run: "loop over P2.09a-b"
+    guard: "review returns 0 major findings"
+    bound: 3
+    progress: "major findings"
+    body: [P2.09a, P2.09b]
+    in: [protocol]
+    out: [protocol_reviewed]
+  - id: P2.09a
+    parent: P2.09
+    lane: P2
+    kind: task
+    title: Adversarial protocol review
+    exec: skill
+    impl: exists
+    run: "/scientific-reviewer --format=journal review/protocol.md"
+    in: [protocol]
+    out: [protocol_review]
+  - id: P2.09b
+    parent: P2.09
+    lane: P2
+    kind: task
+    title: Fold review findings into the protocol
+    exec: agent
+    impl: exists
+    skill: sr-fold
+    mode: fold
+    run: "agsci board run src/scoping_review/board.yaml P2.09b --root <project>"
+    in: [protocol_review]
+    out: [protocol_rev]
+  - id: P2.10
+    lane: P2
+    kind: gate
+    title: Protocol frozen
+    exec: human
+    impl: human
+    run: "authors approve; agsci sr freeze review/protocol.md --ledger review/ledger.jsonl --node P2.10"
+    approver: all authors
+    criterion: "every author approves; hash recorded"
+    in: [protocol_reviewed]
+    out: [protocol_frozen]
+
+  # ---------------------------------------------------------------- P3 Registration
+  - id: P3.01
+    lane: P3
+    kind: decision
+    title: Also publish the protocol in a journal?
+    exec: human
+    impl: human
+    run: "record in review/decisions.yaml#P3.01"
+    options: ["yes", "no"]
+    criterion: "yes if the target journal expects a published protocol (e.g. JBI Evidence Synthesis) and the timeline allows it"
+    in: [protocol_frozen, journal_profile]
+    out: [protocol_pub_decision]
+  - id: P3.02
+    lane: P3
+    kind: task
+    title: Register the protocol on OSF Registries
+    exec: human
+    impl: human
+    run: "OSF Registries, Generalized Systematic Review Registration form; record DOI in review/registration.yaml"
+    in: [protocol_frozen]
+    out: [osf_registration]
+  - id: P3.03
+    lane: P3
+    kind: task
+    title: Submit the protocol paper
+    exec: human
+    impl: human
+    when: "P3.01 == yes"
+    run: "submit review/protocol.md to the protocol venue; record ID in review/registration.yaml"
+    in: [protocol_frozen, protocol_pub_decision]
+    out: [protocol_submission]
+  - id: P3.04
+    lane: P3
+    kind: task
+    title: Open the deviations log
+    exec: script
+    impl: exists
+    run: "agsci sr freeze review/protocol.md --ledger review/ledger.jsonl --node P3.04 && agsci sr freeze review/registration.yaml --ledger review/ledger.jsonl --node P3.04"
+    in: [protocol_frozen, osf_registration]
+    out: [deviations_log]
+
+  # ---------------------------------------------------------------- P4 Search execution
+  - id: P4.01
+    lane: P4
+    kind: task
+    title: Run database searches with PRISMA-S log
+    exec: script
+    impl: exists
+    run: "agsci sr search --strings review/search/ --out review/records/raw/ --log review/search_log.json (all 16 PRISMA-S items)  # ports mays/013 harvest_multisource.py + glp1_brca multi_source_search.py"
+    in: [search_final, osf_registration]
+    out: [raw_records, search_log]
+  - id: P4.02
+    lane: P4
+    kind: decision
+    title: Is grey literature in scope?
+    exec: human
+    impl: human
+    run: "read protocol section 'Sources'; record in review/decisions.yaml#P4.02"
+    options: ["yes", "no"]
+    criterion: "as fixed in the frozen protocol"
+    in: [protocol_frozen]
+    out: [grey_decision]
+  - id: P4.03
+    lane: P4
+    kind: task
+    title: Search grey literature
+    exec: ai+human
+    impl: exists
+    skill: sr-search-design
+    mode: grey
+    when: "P4.02 == yes"
+    run: "agsci board run src/scoping_review/board.yaml P4.03 --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [search_final, grey_decision]
+    out: [grey_records]
+  - id: P4.04
+    lane: P4
+    kind: task
+    title: Deduplicate records
+    exec: script
+    impl: exists
+    run: "agsci sr dedup --in review/records/ --out review/records/dedup.json --log review/records/dedup_log.json"
+    in: [raw_records, grey_records]
+    optional: [grey_records]
+    out: [records_dedup, dedup_log]
+  - id: P4.05
+    lane: P4
+    kind: gate
+    title: Deduplication spot-check
+    exec: human
+    impl: exists
+    run: "agsci sr dedup-sample --log review/records/dedup_log.json --n 50 --out review/records/dedup_check.jsonl → human sets false_merge on every row (all version pairs first)"
+    approver: lead reviewer
+    criterion: "0 false merges in thresholds.dedup_check_pairs random merged pairs"
+    in: [dedup_log]
+    out: [dedup_ok]
+  - id: P4.06
+    lane: P4
+    kind: decision
+    title: Use active-learning prioritization for screening?
+    exec: ai+human
+    impl: human
+    run: "record in review/decisions.yaml#P4.06"
+    options: ["yes", "no"]
+    criterion: "yes when records > thresholds.al_trigger_records; stop by SAFE: all seeds found, >= 2x estimated relevant prevalence and >= 10% screened, last 50 irrelevant, model switch, independent check of exclusions; disclose and log as a deviation if not in the protocol"
+    in: [records_dedup, dedup_ok]
+    out: [al_decision]
+
+  # ---------------------------------------------------------------- P5 Title/abstract screening
+  - id: P5.01
+    lane: P5
+    kind: task
+    title: Write the screening guide with worked examples
+    exec: agent
+    impl: exists
+    skill: sr-screen
+    mode: guide
+    run: "agsci board run src/scoping_review/board.yaml P5.01 --root <project>"
+    in: [eligibility, protocol_frozen]
+    out: [screening_guide]
+  - id: P5.02
+    lane: P5
+    kind: loop
+    title: Calibrate human and AI screeners on a pilot sample
+    exec: ai+human
+    impl: exists
+    run: "agsci board start ... P5.02; run body P5.02a-e; agsci board iterate ... P5.02 --note <guard result> until the guard holds, then agsci board done ... P5.02"
+    guard: "agreement >= thresholds.pilot_ta_agreement on thresholds.pilot_ta_sample records"
+    bound: 3
+    progress: "disagreements on the pilot sample"
+    body: [P5.02a, P5.02b, P5.02c, P5.02d, P5.02e]
+    in: [records_dedup, screening_guide, ai_reviewer_spec]
+    out: [screening_guide_final, calibration_report]
+  - id: P5.02a
+    parent: P5.02
+    lane: P5
+    kind: task
+    title: Draw a seeded random pilot sample
+    exec: script
+    impl: exists
+    run: "agsci sr sample --in review/records/dedup.json --n 25 --seed <iteration> --out review/screen/pilot.json"
+    in: [records_dedup]
+    out: [pilot_sample]
+  - id: P5.02b
+    parent: P5.02
+    lane: P5
+    kind: task
+    title: Human screens the pilot
+    exec: human
+    impl: exists
+    run: "agsci sr sheet screen --in review/screen/pilot_{iter}.jsonl --out review/screen/human_pilot_{iter}.csv → fill → agsci sr sheet import-screen --sheet ... --stage pilot --screener <initials> --codes-from review/eligibility.md --out review/screen/human_pilot_{iter}.jsonl"
+    in: [pilot_sample, screening_guide]
+    out: [human_pilot]
+  - id: P5.02c
+    parent: P5.02
+    lane: P5
+    kind: task
+    title: AI screens the pilot independently
+    exec: agent
+    impl: exists
+    skill: sr-screen
+    mode: screen
+    run: "agsci board run src/scoping_review/board.yaml P5.02c --root <project>"
+    in: [pilot_sample, screening_guide, ai_reviewer_spec]
+    out: [ai_pilot]
+  - id: P5.02d
+    parent: P5.02
+    lane: P5
+    kind: task
+    title: Compute agreement and Cohen's kappa
+    exec: script
+    impl: exists
+    run: "agsci sr agreement --a review/screen/human_pilot.csv --b review/screen/ai_pilot.csv"
+    in: [human_pilot, ai_pilot]
+    out: [pilot_agreement]
+  - id: P5.02e
+    parent: P5.02
+    lane: P5
+    kind: task
+    title: Refine guide and AI prompt (log any criteria change as a deviation)
+    exec: ai+human
+    impl: exists
+    skill: sr-screen
+    mode: refine
+    run: "agsci board run src/scoping_review/board.yaml P5.02e --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [pilot_agreement]
+    out: [guide_rev]
+  - id: P5.03
+    lane: P5
+    kind: task
+    title: AI screens all titles/abstracts (reason + quoted span)
+    exec: agent
+    impl: exists
+    skill: sr-screen
+    mode: screen
+    run: "agsci board run src/scoping_review/board.yaml P5.03 --root <project>"
+    in: [records_dedup, screening_guide_final, ai_reviewer_spec]
+    out: [ai_ta]
+  - id: P5.04
+    lane: P5
+    kind: task
+    title: Human screens all titles/abstracts
+    exec: human
+    impl: exists
+    run: "agsci sr sheet screen --in review/records/dedup.jsonl --out review/screen/human_ta.csv → fill (active-learning order + SAFE stop when P4.06 == yes) → agsci sr sheet import-screen --stage ta ... --out review/screen/human_ta.jsonl"
+    in: [records_dedup, screening_guide_final, al_decision]
+    out: [human_ta]
+  - id: P5.05
+    lane: P5
+    kind: task
+    title: Compare screeners, compute kappa, build conflict queue
+    exec: script
+    impl: exists
+    run: "agsci sr agreement --a review/screen/human_ta.csv --b review/screen/ai_ta.csv --conflicts review/screen/ta_conflicts.csv"
+    in: [ai_ta, human_ta]
+    out: [ta_conflicts, ta_kappa]
+  - id: P5.06
+    lane: P5
+    kind: task
+    title: Adjudicate title/abstract conflicts
+    exec: human
+    impl: exists
+    run: "agsci sr sheet adjudicate --in review/screen/ta_conflicts.jsonl --records review/records/dedup.jsonl --out review/screen/ta_adjudicate.csv → fill → agsci sr finalize --a review/screen/human_ta.jsonl --b review/screen/ai_ta.jsonl --adjudicated review/screen/ta_adjudicate.csv --stage ta --adjudicator <initials> --codes-from review/eligibility.md --out review/screen/ta_final.jsonl"
+    in: [ta_conflicts]
+    out: [ta_decisions]
+  - id: P5.07
+    lane: P5
+    kind: gate
+    title: Title/abstract screening complete
+    exec: script
+    impl: exists
+    run: "agsci sr check-stage ta"
+    approver: adjudicator
+    criterion: "every record has a final decision, 0 unresolved conflicts, kappa recorded"
+    in: [ta_decisions, ta_kappa, records_dedup]
+    out: [ta_included]
+
+  # ---------------------------------------------------------------- P6 Full-text screening
+  - id: P6.01
+    lane: P6
+    kind: task
+    title: Retrieve open-access full texts
+    exec: script
+    impl: exists
+    run: "agsci sr fetch-fulltext --in review/screen/ta_included.jsonl --out review/fulltext/ --log review/fulltext/retrieval_log.json"
+    in: [ta_included]
+    out: [fulltext_oa, retrieval_log]
+  - id: P6.02
+    lane: P6
+    kind: task
+    title: Retrieve paywalled full texts (library / ILL)
+    exec: human
+    impl: human
+    run: "work through review/fulltext/missing.csv; drop PDFs in review/fulltext/manual/"
+    in: [retrieval_log]
+    out: [fulltext_manual, not_retrieved]
+  - id: P6.03
+    lane: P6
+    kind: task
+    title: Convert PDFs to text
+    exec: script
+    impl: exists
+    run: "gpu-run --class batch --mem 8192 --reason 'docling fulltext' -- agsci sr convert review/fulltext/ review/fulltext/manual/ --out review/fulltext_md/"
+    in: [fulltext_oa, fulltext_manual]
+    out: [fulltext_md]
+  - id: P6.04
+    lane: P6
+    kind: task
+    title: AI full-text screen (reason code + page-cited quote)
+    exec: agent
+    impl: exists
+    skill: sr-screen
+    mode: screen
+    run: "agsci board run src/scoping_review/board.yaml P6.04 --root <project>"
+    in: [fulltext_md, screening_guide_final, ai_reviewer_spec]
+    out: [ai_ft]
+  - id: P6.05
+    lane: P6
+    kind: task
+    title: Human full-text screen
+    exec: human
+    impl: exists
+    run: "agsci sr sheet screen --in review/screen/ta_included.jsonl --out review/screen/human_ft.csv → fill from the full texts → agsci sr sheet import-screen --stage ft ... --out review/screen/human_ft.jsonl"
+    in: [fulltext_md, screening_guide_final]
+    out: [human_ft]
+  - id: P6.06
+    lane: P6
+    kind: task
+    title: Compare full-text screeners, kappa, conflicts
+    exec: script
+    impl: exists
+    run: "agsci sr agreement --a review/screen/human_ft.csv --b review/screen/ai_ft.csv --conflicts review/screen/ft_conflicts.csv"
+    in: [ai_ft, human_ft]
+    out: [ft_conflicts, ft_kappa]
+  - id: P6.07
+    lane: P6
+    kind: task
+    title: Adjudicate full-text conflicts
+    exec: human
+    impl: exists
+    run: "agsci sr sheet adjudicate --in review/screen/ft_conflicts.jsonl ... → fill → agsci sr finalize --stage ft ... --out review/screen/ft_final.jsonl"
+    in: [ft_conflicts]
+    out: [ft_decisions]
+  - id: P6.08
+    lane: P6
+    kind: loop
+    title: Citation chasing (backward and forward)
+    exec: ai+human
+    impl: exists
+    run: "agsci board start ... P6.08; run body P6.08a-d; agsci board iterate ... P6.08 --note <guard result> until the guard holds, then agsci board done ... P6.08"
+    guard: "a round adds 0 newly included sources"
+    bound: 3
+    progress: "newly included sources per round"
+    body: [P6.08a, P6.08b, P6.08c, P6.08d]
+    in: [ft_decisions, records_dedup, screening_guide_final, ai_reviewer_spec]
+    out: [chase_included, chase_log]
+  - id: P6.08a
+    parent: P6.08
+    lane: P6
+    kind: task
+    title: Collect references and citing works of included sources
+    exec: script
+    impl: exists
+    run: "agsci sr chase --included review/screen/ft_final.jsonl --out review/chase/candidates_{iter}.jsonl  (trace review/chase/candidates_{iter}.unresolved.txt by hand)"
+    in: [ft_decisions]
+    out: [chase_candidates]
+  - id: P6.08b
+    parent: P6.08
+    lane: P6
+    kind: task
+    title: Deduplicate candidates against the corpus
+    exec: script
+    impl: exists
+    run: "agsci sr dedup --against review/records/dedup.json --in review/chase/candidates.json"
+    in: [chase_candidates, records_dedup]
+    out: [chase_new]
+  - id: P6.08c
+    parent: P6.08
+    lane: P6
+    kind: task
+    title: AI screens chased records (TA + FT)
+    exec: agent
+    impl: exists
+    skill: sr-screen
+    mode: screen
+    run: "agsci board run src/scoping_review/board.yaml P6.08c --root <project>"
+    in: [chase_new, screening_guide_final, ai_reviewer_spec]
+    out: [chase_ai]
+  - id: P6.08d
+    parent: P6.08
+    lane: P6
+    kind: task
+    title: Human screens and adjudicates chased records
+    exec: human
+    impl: exists
+    run: "agsci sr sheet screen --in review/chase/new_{iter}.jsonl ... → import-screen --stage chase → agsci sr agreement + sheet adjudicate + finalize --stage chase --out review/chase/final_{iter}.jsonl"
+    in: [chase_ai, chase_new]
+    out: [chase_round]
+  - id: P6.09
+    lane: P6
+    kind: gate
+    title: Included set frozen; PRISMA counts balance
+    exec: script
+    impl: exists
+    run: "agsci sr check-stage ft ... && agsci sr prisma --search-log review/search_log.json --dedup-log review/records/dedup_log.json --ta-report review/screen/ta_report.json --ft-report review/screen/ft_report.json --not-retrieved <n> --out review/prisma_counts.json"
+    approver: adjudicator
+    criterion: "identified - duplicates - excluded = included at every stage; every FT exclusion has a reason code"
+    in: [ft_decisions, chase_included, chase_log, ta_included, not_retrieved, dedup_log, search_log]
+    out: [included_final, prisma_counts]
+
+  # ---------------------------------------------------------------- P7 Charting
+  - id: P7.01
+    lane: P7
+    kind: loop
+    title: Pilot the charting form
+    exec: ai+human
+    impl: exists
+    run: "agsci board start ... P7.01; run body P7.01a-c; agsci board iterate ... P7.01 --note <guard result> until the guard holds, then agsci board done ... P7.01"
+    guard: "human and AI agree on >= thresholds.pilot_chart_agreement of fields across thresholds.pilot_chart_sources sources per source type, and no field is ambiguous"
+    bound: 3
+    progress: "disagreeing fields"
+    body: [P7.01a, P7.01b, P7.01c]
+    in: [charting_form_v0, included_final, fulltext_md]
+    out: [charting_form_final]
+  - id: P7.01a
+    parent: P7.01
+    lane: P7
+    kind: task
+    title: Human and AI chart the pilot sources independently
+    exec: ai+human
+    impl: exists
+    skill: sr-chart
+    mode: chart
+    run: "agsci board run src/scoping_review/board.yaml P7.01a --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [charting_form_v0, included_final, fulltext_md]
+    out: [chart_pilot]
+  - id: P7.01b
+    parent: P7.01
+    lane: P7
+    kind: task
+    title: Compare field-level agreement
+    exec: script
+    impl: exists
+    run: "agsci sr chart-agreement --a review/chart/pilot_{iter}/human.jsonl --b review/chart/pilot_{iter}/ai.jsonl --out review/chart/pilot_agreement_{iter}.json"
+    in: [chart_pilot]
+    out: [chart_pilot_agreement]
+  - id: P7.01c
+    parent: P7.01
+    lane: P7
+    kind: task
+    title: Revise the charting form
+    exec: ai+human
+    impl: exists
+    skill: sr-protocol
+    mode: revise-form
+    run: "agsci board run src/scoping_review/board.yaml P7.01c --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [chart_pilot_agreement]
+    out: [charting_form_rev]
+  - id: P7.02
+    lane: P7
+    kind: task
+    title: AI charts every included source (quote + page per field)
+    exec: agent
+    impl: exists
+    skill: sr-chart
+    mode: chart
+    run: "agsci board run src/scoping_review/board.yaml P7.02 --root <project>"
+    in: [included_final, fulltext_md, charting_form_final]
+    out: [ai_chart]
+  - id: P7.03
+    lane: P7
+    kind: task
+    title: Human verifies every charted field against its quote
+    exec: human
+    impl: exists
+    run: "agsci sr sheet verify --in review/chart/ai.jsonl --out review/chart/verify.csv → mark every field accept/correct/not_reported → agsci sr sheet import-verify --in review/chart/ai.jsonl --sheet review/chart/verify.csv --verifier <initials> --out review/chart/verified.jsonl"
+    in: [ai_chart]
+    out: [chart_verified]
+  - id: P7.04
+    lane: P7
+    kind: decision
+    title: Appraise source quality?
+    exec: human
+    impl: human
+    run: "read protocol; record in review/decisions.yaml#P7.04"
+    options: ["no", "yes"]
+    criterion: "default no: JBI 10.2.8 does not advocate appraisal in scoping reviews; yes only if a funder requires it, reported descriptively and never used for recommendations"
+    in: [protocol_frozen]
+    out: [appraisal_decision]
+  - id: P7.05
+    lane: P7
+    kind: task
+    title: Critical appraisal with a named tool
+    exec: ai+human
+    impl: exists
+    skill: sr-chart
+    mode: appraise
+    when: "P7.04 == yes"
+    run: "agsci board run src/scoping_review/board.yaml P7.05 --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [chart_verified, appraisal_decision]
+    out: [appraisal]
+  - id: P7.06
+    lane: P7
+    kind: decision
+    title: Run a stakeholder consultation (Arksey and O'Malley stage 6)?
+    exec: human
+    impl: human
+    run: "record in review/decisions.yaml#P7.06"
+    options: ["no", "yes"]
+    criterion: "as fixed in the protocol: optional under Arksey and O'Malley 2005, required under Levac et al. 2010; declare which framework applies"
+    in: [protocol_frozen]
+    out: [consult_decision]
+  - id: P7.07
+    lane: P7
+    kind: decision
+    title: Does the consultation need ethics (IRB) approval?
+    exec: human
+    impl: human
+    when: "P7.06 == yes"
+    run: "ask the institutional IRB office; record in review/decisions.yaml#P7.07"
+    options: ["yes", "no"]
+    criterion: "yes if consultation data about people will be collected and reported"
+    in: [consult_decision]
+    out: [irb_decision]
+  - id: P7.08
+    lane: P7
+    kind: task
+    title: Obtain IRB approval
+    exec: human
+    impl: human
+    when: "P7.07 == yes"
+    run: "submit to the IRB; store approval letter in review/ethics/"
+    in: [irb_decision]
+    out: [irb_approval]
+  - id: P7.09
+    lane: P7
+    kind: task
+    title: Run the consultation
+    exec: human
+    impl: human
+    when: "P7.06 == yes"
+    run: "present preliminary map to stakeholders; record notes in review/consultation.md"
+    in: [chart_verified, consult_decision, irb_approval]
+    optional: [irb_approval]
+    out: [consult_notes]
+  - id: P7.10
+    lane: P7
+    kind: gate
+    title: Charting dataset frozen
+    exec: script
+    impl: exists
+    run: "agsci sr freeze review/chart/verified.jsonl --ledger review/ledger.jsonl --node P7.10"
+    approver: lead reviewer
+    criterion: "100% of fields human-verified; deviations logged; hash recorded"
+    in: [chart_verified, appraisal, deviations_log]
+    optional: [appraisal]
+    out: [chart_frozen]
+
+  # ---------------------------------------------------------------- P8 Synthesis and visualization
+  - id: P8.01
+    lane: P8
+    kind: task
+    title: Descriptive statistics
+    exec: script
+    impl: exists
+    run: "agsci sr describe --in review/chart/frozen.jsonl --fields <charting form field ids> --out review/synthesis/stats.json"
+    in: [chart_frozen]
+    out: [stats]
+  - id: P8.02
+    lane: P8
+    kind: task
+    title: Build the content-analysis codebook
+    exec: ai+human
+    impl: exists
+    skill: sr-synthesize
+    mode: codebook
+    run: "agsci board run src/scoping_review/board.yaml P8.02 --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [chart_frozen]
+    out: [codebook]
+  - id: P8.03
+    lane: P8
+    kind: task
+    title: Apply codes to every source with quotes
+    exec: agent
+    impl: exists
+    skill: sr-synthesize
+    mode: code
+    run: "agsci board run src/scoping_review/board.yaml P8.03 --root <project>"
+    in: [chart_frozen, codebook]
+    out: [coded]
+  - id: P8.04
+    lane: P8
+    kind: task
+    title: Human verifies coding
+    exec: human
+    impl: exists
+    run: "agsci sr sheet verify --in review/synthesis/coded.jsonl ... → import-verify --verifier <initials> --out review/synthesis/coded_verified.jsonl"
+    in: [coded]
+    out: [coded_verified]
+  - id: P8.05
+    lane: P8
+    kind: task
+    title: Build the evidence gap map matrix
+    exec: script
+    impl: exists
+    run: "agsci sr gap-map --in review/synthesis/coded_verified.jsonl --rows <field> --cols <field> --out review/synthesis/gap_map.json"
+    in: [coded_verified]
+    out: [gap_map]
+  - id: P8.06
+    lane: P8
+    kind: task
+    title: Narrative synthesis by review question, with claims ledger
+    exec: agent
+    impl: exists
+    skill: sr-synthesize
+    mode: synthesize
+    run: "agsci board run src/scoping_review/board.yaml P8.06 --root <project>"
+    in: [coded_verified, stats, gap_map, consult_notes, pcc_final]
+    optional: [consult_notes]
+    out: [synthesis, claims_ledger]
+  - id: P8.07
+    lane: P8
+    kind: task
+    title: "Figure: PRISMA flow diagram"
+    exec: script
+    impl: exists
+    run: "agsci sr fig prisma --in review/prisma_counts.json --out manuscript/figures/prisma.pdf"
+    in: [prisma_counts, reporting_std]
+    out: [fig_prisma]
+  - id: P8.08
+    lane: P8
+    kind: task
+    title: "Figure: sources by year and type"
+    exec: script
+    impl: exists
+    run: "agsci sr fig timeline --in review/chart/frozen.jsonl --stack-field <field> --out manuscript/figures/timeline.pdf"
+    in: [stats]
+    out: [fig_timeline]
+  - id: P8.09
+    lane: P8
+    kind: task
+    title: "Figure: evidence gap map"
+    exec: script
+    impl: exists
+    run: "agsci sr fig gapmap --in review/synthesis/gap_map.json --out manuscript/figures/gapmap.pdf"
+    in: [gap_map]
+    out: [fig_gapmap]
+  - id: P8.10
+    lane: P8
+    kind: task
+    title: "Figure: geographic and venue distribution"
+    exec: script
+    impl: exists
+    run: "agsci sr fig bars --in review/synthesis/stats.json --field country --out manuscript/figures/geo.pdf"
+    in: [stats]
+    out: [fig_geo]
+  - id: P8.11
+    lane: P8
+    kind: task
+    title: "Figure: category distribution"
+    exec: script
+    impl: exists
+    run: "agsci sr fig bars --in review/synthesis/stats.json --field <category field> --out manuscript/figures/alluvial.pdf"
+    in: [coded_verified]
+    out: [fig_alluvial]
+  - id: P8.12
+    lane: P8
+    kind: task
+    title: "Table: characteristics of included sources"
+    exec: script
+    impl: exists
+    run: "agsci sr table characteristics --in review/chart/frozen.jsonl --columns <field:Label ...> --cite-keys manuscript/cite_keys.json --out manuscript/tables/characteristics.tex"
+    in: [chart_frozen, refs_included]
+    out: [tab_characteristics]
+  - id: P8.13
+    lane: P8
+    kind: decision
+    title: Graphical abstract or concept figure needed?
+    exec: human
+    impl: human
+    run: "check journal profile; record in review/decisions.yaml#P8.13"
+    options: ["yes", "no"]
+    criterion: "yes if the journal requires a graphical abstract or the framework needs a concept diagram"
+    in: [journal_profile]
+    out: [ga_decision]
+  - id: P8.14
+    lane: P8
+    kind: task
+    title: Concept figure / graphical abstract
+    exec: agent
+    impl: exists
+    skill: generate-concept-figure
+    mode: default
+    when: "P8.13 == yes"
+    run: "agsci board run src/scoping_review/board.yaml P8.14 --root <project>"
+    in: [ga_decision, synthesis]
+    out: [fig_concept]
+  - id: P8.15
+    lane: P8
+    kind: loop
+    title: Figure QA
+    exec: skill
+    impl: exists
+    run: "loop over P8.15a-b"
+    guard: "latex-figures audit reports 0 defects (colorblind-safe, legible at print size, fonts embedded)"
+    bound: 3
+    progress: "figure defects"
+    body: [P8.15a, P8.15b]
+    in: [fig_prisma, fig_timeline, fig_gapmap, fig_geo, fig_alluvial, fig_concept]
+    optional: [fig_concept]
+    out: [figures_final]
+  - id: P8.15a
+    parent: P8.15
+    lane: P8
+    kind: task
+    title: Audit figures
+    exec: skill
+    impl: exists
+    run: "/latex-figures manuscript/figures/"
+    in: [fig_prisma, fig_timeline, fig_gapmap, fig_geo, fig_alluvial, fig_concept]
+    optional: [fig_concept]
+    out: [figure_audit]
+  - id: P8.15b
+    parent: P8.15
+    lane: P8
+    kind: task
+    title: Fix figure scripts and regenerate
+    exec: agent
+    impl: exists
+    skill: sr-latex
+    mode: figures
+    run: "agsci board run src/scoping_review/board.yaml P8.15b --root <project>"
+    in: [figure_audit]
+    out: [figures_rev]
+  - id: P8.16
+    lane: P8
+    kind: gate
+    title: Synthesis grounded in frozen data
+    exec: script
+    impl: exists
+    run: "agsci sr audit-claims --claims review/synthesis/claims_grounding.json --data review/chart/verified.jsonl --stats review/synthesis/stats.json --out review/synthesis/audit.json"
+    approver: lead reviewer
+    criterion: "every claim cites >= 1 included record ID; every figure is built only from frozen data and has a supporting narrative (JBI 10.2.11); descriptive counts and basic content analysis only, no meta-analysis or interpretive synthesis (JBI 10.2.10)"
+    in: [synthesis, claims_ledger, figures_final, chart_frozen]
+    out: [synthesis_ok]
+
+  # ---------------------------------------------------------------- P9 Drafting
+  - id: P9.01
+    lane: P9
+    kind: task
+    title: Outline mapped to reporting items and journal structure
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: outline
+    run: "agsci board run src/scoping_review/board.yaml P9.01 --root <project>"
+    in: [journal_profile, reporting_std, synthesis_ok]
+    out: [outline]
+  - id: P9.02
+    lane: P9
+    kind: task
+    title: Draft Methods
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: methods
+    run: "agsci board run src/scoping_review/board.yaml P9.02 --root <project>"
+    in: [outline, protocol_frozen, deviations_log, search_log, ta_kappa, ft_kappa, calibration_report, ai_reviewer_spec]
+    out: [sec_methods]
+  - id: P9.03
+    lane: P9
+    kind: task
+    title: Draft Results
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: results
+    run: "agsci board run src/scoping_review/board.yaml P9.03 --root <project>"
+    in: [outline, synthesis, claims_ledger, figures_final, tab_characteristics, prisma_counts]
+    out: [sec_results]
+  - id: P9.04
+    lane: P9
+    kind: task
+    title: Draft Introduction (CARS framing)
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: introduction
+    run: "agsci board run src/scoping_review/board.yaml P9.04 --root <project>"
+    in: [outline, pcc_final, prior_reviews]
+    out: [sec_intro]
+  - id: P9.05
+    lane: P9
+    kind: task
+    title: Draft Discussion and limitations (incl. AI-screening limits)
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: discussion
+    run: "agsci board run src/scoping_review/board.yaml P9.05 --root <project>"
+    in: [sec_results, synthesis, gap_map]
+    out: [sec_discussion]
+  - id: P9.06
+    lane: P9
+    kind: task
+    title: Draft Conclusion
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: conclusion
+    run: "agsci board run src/scoping_review/board.yaml P9.06 --root <project>"
+    in: [sec_discussion]
+    out: [sec_conclusion]
+  - id: P9.07
+    lane: P9
+    kind: task
+    title: Draft structured abstract and title ("scoping review" in title)
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: abstract
+    run: "agsci board run src/scoping_review/board.yaml P9.07 --root <project>"
+    in: [sec_methods, sec_results, sec_conclusion, journal_profile]
+    out: [sec_abstract]
+  - id: P9.08
+    lane: P9
+    kind: task
+    title: Declarations (AI use, data availability, CRediT, funding, COI, registration)
+    exec: agent
+    impl: exists
+    skill: sr-draft
+    mode: declarations
+    run: "agsci board run src/scoping_review/board.yaml P9.08 --root <project>"
+    in: [ai_reviewer_spec, team, osf_registration, journal_profile]
+    out: [sec_declarations]
+  - id: P9.09
+    lane: P9
+    kind: task
+    title: Supplementary material (search strings, form, included and excluded lists)
+    exec: script
+    impl: exists
+    run: "agsci sr supplement --search-dir review/search --charting-form review/charting_form.yaml --included review/included.jsonl --ft-final review/screen/ft_final.jsonl --records review/records/dedup.jsonl --out manuscript/supplement/"
+    in: [search_final, charting_form_final, included_final, ft_decisions]
+    out: [supplement]
+  - id: P9.10
+    lane: P9
+    kind: task
+    title: Assemble manuscript in the journal template
+    exec: script
+    impl: exists
+    run: "agsci sr assemble --sections <outline order, e.g. abstract introduction methods results discussion conclusion declarations> --out manuscript/main.tex"
+    in: [tex_template, sec_abstract, sec_intro, sec_methods, sec_results, sec_discussion, sec_conclusion, sec_declarations, supplement]
+    out: [ms_v1]
+  - id: P9.11
+    lane: P9
+    kind: gate
+    title: Every empirical claim grounded
+    exec: script
+    impl: exists
+    run: "agsci sr audit-claims --claims review/synthesis/claims_grounding.json --data review/chart/verified.jsonl --stats review/synthesis/stats.json --tex manuscript --cite-keys manuscript/cite_keys.json --out review/audit/grounding_v1.json"
+    approver: lead reviewer
+    criterion: "0 ungrounded empirical claims"
+    in: [ms_v1, claims_ledger, chart_frozen]
+    out: [grounding_ok_v1]
+
+  # ---------------------------------------------------------------- P10 References
+  - id: P10.01
+    lane: P10
+    kind: task
+    title: BibTeX for included sources via DOI
+    exec: script
+    impl: exists
+    run: "agsci sr bib --included review/included.jsonl --out manuscript/refs_included.bib --keys manuscript/cite_keys.json"
+    in: [included_final]
+    out: [refs_included]
+  - id: P10.02
+    lane: P10
+    kind: task
+    title: Background references
+    exec: agent
+    impl: exists
+    skill: retrieve-references
+    mode: default
+    run: "agsci board run src/scoping_review/board.yaml P10.02 --root <project>"
+    in: [sec_intro, sec_discussion]
+    out: [refs_background]
+  - id: P10.03
+    lane: P10
+    kind: task
+    title: Merge and deduplicate bibliography
+    exec: script
+    impl: exists
+    run: "agsci sr bib-merge manuscript/refs_included.bib manuscript/refs_background.bib --out manuscript/references.bib"
+    in: [refs_included, refs_background]
+    out: [references]
+  - id: P10.04
+    lane: P10
+    kind: task
+    title: Reference integrity (dangling, orphans, DOIs, metadata)
+    exec: skill
+    impl: exists
+    run: "/ref-bolster --verify-only manuscript/main.tex"
+    in: [references, ms_v1]
+    out: [ref_report]
+  - id: P10.05
+    lane: P10
+    kind: task
+    title: Retraction check
+    exec: script
+    impl: exists
+    run: "agsci sr retractions --bib manuscript/references.bib --out review/refs/retractions.json"
+    in: [references]
+    out: [retraction_report]
+  - id: P10.06
+    lane: P10
+    kind: task
+    title: Citation content match (cited source supports the claim)
+    exec: skill
+    impl: exists
+    run: "/claim-to-source manuscript/main.tex"
+    in: [references, ms_v1]
+    out: [citation_support]
+  - id: P10.07
+    lane: P10
+    kind: gate
+    title: References clean
+    exec: script
+    impl: exists
+    run: "agsci sr check-refs --tex manuscript --bib manuscript/references.bib --retractions review/refs/retractions.json --out review/refs/ok.json  (and read review/refs/integrity.md + citation_support.md: 0 open items)"
+    approver: lead reviewer
+    criterion: "0 dangling, 0 orphan, 0 unresolved DOI, 0 unflagged retraction, 0 unsupported citation"
+    in: [ref_report, retraction_report, citation_support]
+    out: [refs_ok]
+
+  # ---------------------------------------------------------------- P11 Editing
+  - id: P11.01
+    lane: P11
+    kind: task
+    title: Developmental edit (argument, reporting-item coverage)
+    exec: agent
+    impl: exists
+    skill: sr-fold
+    mode: developmental
+    run: "agsci board run src/scoping_review/board.yaml P11.01 --root <project>"
+    in: [ms_v1, grounding_ok_v1, refs_ok, outline]
+    out: [ms_dev]
+  - id: P11.02
+    lane: P11
+    kind: task
+    title: Flow pass
+    exec: skill
+    impl: exists
+    run: "/disjoint manuscript/main.tex"
+    in: [ms_dev]
+    out: [ms_flow]
+  - id: P11.03
+    lane: P11
+    kind: task
+    title: Sentence-level pass
+    exec: skill
+    impl: exists
+    run: "/sciwrite manuscript/main.tex"
+    in: [ms_flow]
+    out: [ms_sentence]
+  - id: P11.04
+    lane: P11
+    kind: task
+    title: Voice check and author rewrite
+    exec: ai+human
+    impl: exists
+    run: "/humanizer --detect-only manuscript/main.tex → author rewrites flagged passages"
+    in: [ms_sentence]
+    out: [ms_voice]
+  - id: P11.05
+    lane: P11
+    kind: task
+    title: House-style lint (no dashes, banned words, terminology)
+    exec: script
+    impl: exists
+    run: "agsci sr lint manuscript/main.tex"
+    in: [ms_voice]
+    out: [ms_edited]
+  - id: P11.06
+    lane: P11
+    kind: gate
+    title: No regressions from editing
+    exec: script
+    impl: exists
+    run: "agsci sr audit-claims ... --tex manuscript --out review/audit/edit.json && agsci sr check-refs --tex manuscript --bib manuscript/references.bib"
+    approver: lead reviewer
+    criterion: "grounding and reference checks still at 0 findings after edits"
+    in: [ms_edited, claims_ledger, references]
+    out: [edit_ok]
+
+  # ---------------------------------------------------------------- P12 Internal review
+  - id: P12.01
+    lane: P12
+    kind: loop
+    title: Adversarial review rounds
+    exec: ai+human
+    impl: exists
+    run: "loop over P12.01a-d"
+    guard: "0 critical and 0 major findings across reviewers"
+    bound: 3
+    progress: "critical + major findings"
+    body: [P12.01a, P12.01b, P12.01c, P12.01d]
+    in: [ms_edited, edit_ok, claims_ledger, references]
+    out: [ms_reviewed, review_ledger]
+  - id: P12.01a
+    parent: P12.01
+    lane: P12
+    kind: task
+    title: Journal-style referee report
+    exec: skill
+    impl: exists
+    run: "/scientific-reviewer --format=journal manuscript/main.tex"
+    in: [ms_edited]
+    out: [review_journal]
+  - id: P12.01b
+    parent: P12.01
+    lane: P12
+    kind: task
+    title: Independent Codex/Sol validation
+    exec: agent
+    impl: exists
+    skill: review-paper
+    mode: default
+    run: "agsci board run src/scoping_review/board.yaml P12.01b --root <project>"
+    in: [ms_edited]
+    out: [review_codex]
+  - id: P12.01c
+    parent: P12.01
+    lane: P12
+    kind: task
+    title: Fold findings (author decides each)
+    exec: ai+human
+    impl: exists
+    skill: sr-fold
+    mode: fold
+    run: "agsci board run src/scoping_review/board.yaml P12.01c --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [review_journal, review_codex]
+    out: [ms_folded]
+  - id: P12.01d
+    parent: P12.01
+    lane: P12
+    kind: task
+    title: Re-verify grounding and references after the fold
+    exec: script
+    impl: exists
+    run: "agsci sr audit-claims ... --tex manuscript --out review/reviews/round_{iter}/recheck.json && agsci sr check-refs --tex manuscript --bib manuscript/references.bib"
+    in: [ms_folded, claims_ledger, references]
+    out: [fold_check]
+  - id: P12.02
+    lane: P12
+    kind: gate
+    title: All-author approval of content
+    exec: human
+    impl: human
+    run: "circulate PDF; record each author's written approval in review/approvals.yaml"
+    approver: all authors
+    criterion: "every author approves in writing"
+    in: [ms_reviewed, team]
+    out: [author_approval]
+
+  # ---------------------------------------------------------------- P13 Typesetting and layout
+  - id: P13.01
+    lane: P13
+    kind: task
+    title: Apply journal class, citation style, float placement, landscape tables
+    exec: agent
+    impl: exists
+    skill: sr-latex
+    mode: typeset
+    run: "agsci board run src/scoping_review/board.yaml P13.01 --root <project>"
+    in: [ms_reviewed, author_approval, tex_template, references, figures_final, tab_characteristics, journal_profile]
+    out: [ms_typeset_src]
+  - id: P13.02
+    lane: P13
+    kind: loop
+    title: Compile until clean
+    exec: script
+    impl: exists
+    run: "loop over P13.02a-b"
+    guard: "0 LaTeX errors, 0 undefined refs/cites, 0 overfull boxes > 1pt, bbl contains every URL/DOI"
+    bound: 5
+    progress: "errors + warnings"
+    body: [P13.02a, P13.02b]
+    in: [ms_typeset_src]
+    out: [ms_pdf]
+  - id: P13.02a
+    parent: P13.02
+    lane: P13
+    kind: task
+    title: Compile and validate references
+    exec: script
+    impl: exists
+    run: "bash src/agents/skills/validate-paper/scripts/compile_latex.sh manuscript/main.tex && python src/agents/skills/validate-paper/scripts/validate_tex_refs.py --tex manuscript/main.tex --bib manuscript/references.bib"
+    in: [ms_typeset_src]
+    out: [compile_log]
+  - id: P13.02b
+    parent: P13.02
+    lane: P13
+    kind: task
+    title: Fix LaTeX issues
+    exec: agent
+    impl: exists
+    skill: sr-latex
+    mode: fix
+    run: "agsci board run src/scoping_review/board.yaml P13.02b --root <project>"
+    in: [compile_log]
+    out: [latex_fix]
+  - id: P13.03
+    lane: P13
+    kind: task
+    title: 150-point PDF inspection
+    exec: skill
+    impl: exists
+    run: "/latex-inspect manuscript/main.pdf"
+    in: [ms_pdf]
+    out: [inspect_report]
+  - id: P13.04
+    lane: P13
+    kind: task
+    title: Page-by-page visual inspection
+    exec: skill
+    impl: exists
+    run: "/visual-inspect manuscript/main.pdf"
+    in: [ms_pdf]
+    out: [visual_report]
+  - id: P13.05
+    lane: P13
+    kind: decision
+    title: Within journal limits (words, abstract, figures, tables, refs)?
+    exec: script
+    impl: exists
+    run: "agsci sr limits --tex manuscript/main.tex --profile review/journal_profile.yaml  # exit 1 = no"
+    options: ["yes", "no"]
+    criterion: "every count at or under the journal profile limit"
+    in: [ms_pdf, journal_profile]
+    out: [limits_decision]
+  - id: P13.06
+    lane: P13
+    kind: loop
+    title: Trim to limits
+    exec: ai+human
+    impl: exists
+    when: "P13.05 == no"
+    run: "agsci board start ... P13.06; run body P13.06a-b; agsci board iterate ... P13.06 --note <guard result> until the guard holds, then agsci board done ... P13.06"
+    guard: "agsci sr limits exits 0"
+    bound: 3
+    progress: "words over limit"
+    body: [P13.06a, P13.06b]
+    in: [ms_pdf, limits_decision, journal_profile]
+    out: [ms_trimmed]
+  - id: P13.06a
+    parent: P13.06
+    lane: P13
+    kind: task
+    title: Move detail to supplement or condense (author approves cuts)
+    exec: ai+human
+    impl: exists
+    skill: sr-latex
+    mode: trim
+    run: "agsci board run src/scoping_review/board.yaml P13.06a --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [ms_pdf, journal_profile]
+    out: [trim_edit]
+  - id: P13.06b
+    parent: P13.06
+    lane: P13
+    kind: task
+    title: Recompile and recount
+    exec: script
+    impl: exists
+    run: "bash src/agents/skills/validate-paper/scripts/compile_latex.sh manuscript/main.tex && agsci sr limits --tex manuscript/main.tex --profile review/journal_profile.yaml"
+    in: [trim_edit]
+    out: [trim_check]
+  - id: P13.07
+    lane: P13
+    kind: gate
+    title: Layout clean
+    exec: script
+    impl: exists
+    run: "agsci sr check-layout --pdf manuscript/main.pdf && test -s review/layout/inspect.md && test -s review/layout/visual.md  (0 blocking findings in both, limits decision yes or trimmed)"
+    approver: lead reviewer
+    criterion: "0 blocking inspection findings, all fonts embedded, within limits"
+    in: [inspect_report, visual_report, limits_decision, ms_trimmed]
+    optional: [ms_trimmed]
+    out: [layout_ok]
+
+  # ---------------------------------------------------------------- P14 Proofreading
+  - id: P14.01
+    lane: P14
+    kind: task
+    title: Numbers consistency (flow diagram = abstract = results = tables)
+    exec: script
+    impl: exists
+    run: "agsci sr check-numbers --pdf manuscript/main.pdf --counts review/prisma_counts.json"
+    in: [layout_ok, prisma_counts, stats]
+    out: [numbers_report]
+  - id: P14.02
+    lane: P14
+    kind: task
+    title: Automated proof checks (cross-refs, numbering, acronyms, spelling)
+    exec: script
+    impl: exists
+    run: "agsci sr proof-auto --tex manuscript --wordlist manuscript/wordlist.txt --out review/proof/auto.md"
+    in: [layout_ok]
+    out: [proof_auto]
+  - id: P14.03
+    lane: P14
+    kind: task
+    title: AI proofread (tracked change list)
+    exec: agent
+    impl: exists
+    skill: sr-proof
+    mode: proofread
+    run: "agsci board run src/scoping_review/board.yaml P14.03 --root <project>"
+    in: [layout_ok]
+    out: [proof_ai]
+  - id: P14.04
+    lane: P14
+    kind: task
+    title: Human proofread of the final PDF
+    exec: human
+    impl: human
+    run: "read the PDF aloud against review/proof/ai.md; accept or reject each change"
+    in: [proof_ai, proof_auto, numbers_report]
+    out: [proof_human]
+  - id: P14.05
+    lane: P14
+    kind: task
+    title: Reporting checklist with page numbers
+    exec: script
+    impl: exists
+    when: "P1.04 == prisma_scr"
+    run: "agsci sr checklist prisma_scr_2018 --map manuscript/reporting_map.yaml --aux manuscript/main.aux --out manuscript/supplement/reporting_checklist.pdf"
+    in: [layout_ok, reporting_std]
+    out: [reporting_checklist]
+  - id: P14.06
+    lane: P14
+    kind: gate
+    title: Proof complete
+    exec: human
+    impl: human
+    run: "lead author signs review/proof/signoff.md"
+    approver: lead author
+    criterion: "0 open proof items, numbers consistent, checklist complete when required"
+    in: [proof_human, numbers_report, reporting_checklist]
+    optional: [reporting_checklist]
+    out: [ms_final]
+
+  # ---------------------------------------------------------------- P15 Submission
+  - id: P15.01
+    lane: P15
+    kind: decision
+    title: Is the search older than the freshness limit?
+    exec: script
+    impl: exists
+    run: "agsci sr search-age --log review/search_log.json --max-months 12 --on <planned submission date>  # exit 1 = yes"
+    options: ["yes", "no"]
+    criterion: "yes if the last search date is more than thresholds.search_age_months before planned submission"
+    in: [search_log, ms_final]
+    out: [update_decision]
+  - id: P15.02
+    lane: P15
+    kind: task
+    title: Update the search and integrate new sources
+    exec: ai+human
+    impl: exists
+    when: "P15.01 == yes"
+    run: "agsci sr search --strategies review/search --since <last search date> --out review/update/raw --log review/update/search_log.json && agsci sr dedup review/update/raw --against review/records/dedup.jsonl --out review/update/new.jsonl --log review/update/dedup_log.json, then screen, chart and synthesise the new records with the same commands (sheet/agreement/finalize/check-stage/chart/describe), recompute prisma, and re-run gates from P9.11"
+    in: [update_decision, search_final, ms_final]
+    out: [ms_updated]
+  - id: P15.03
+    lane: P15
+    kind: task
+    title: Cover letter
+    exec: agent
+    impl: exists
+    skill: sr-submission
+    mode: cover-letter
+    run: "agsci board run src/scoping_review/board.yaml P15.03 --root <project>"
+    in: [ms_final, journal_profile]
+    out: [cover_letter]
+  - id: P15.04
+    lane: P15
+    kind: task
+    title: Suggested and opposed reviewers (no conflicts of interest)
+    exec: ai+human
+    impl: exists
+    skill: sr-submission
+    mode: reviewers
+    run: "agsci board run src/scoping_review/board.yaml P15.04 --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [references, journal_profile]
+    out: [reviewer_suggestions]
+  - id: P15.05
+    lane: P15
+    kind: task
+    title: Highlights / key points
+    exec: agent
+    impl: exists
+    skill: sr-submission
+    mode: highlights
+    run: "agsci board run src/scoping_review/board.yaml P15.05 --root <project>"
+    in: [ms_final, journal_profile]
+    out: [highlights]
+  - id: P15.06
+    lane: P15
+    kind: decision
+    title: Post a preprint?
+    exec: human
+    impl: human
+    run: "check journal preprint policy; record in review/decisions.yaml#P15.06"
+    options: ["yes", "no"]
+    criterion: "journal permits preprints and the authors want one"
+    in: [journal_profile, ms_final]
+    out: [preprint_decision]
+  - id: P15.07
+    lane: P15
+    kind: task
+    title: Post the preprint
+    exec: human
+    impl: human
+    when: "P15.06 == yes"
+    run: "upload to arXiv / OSF Preprints; record DOI"
+    in: [preprint_decision, ms_final]
+    out: [preprint_doi]
+  - id: P15.08
+    lane: P15
+    kind: task
+    title: Deposit review data on the OSF project
+    exec: human
+    impl: human
+    run: "upload search strings, search log, dedup log, screening decisions (human + AI), charting dataset, code"
+    in: [osf_registration, chart_frozen, search_log, dedup_log, ta_decisions, ft_decisions]
+    out: [data_deposit]
+  - id: P15.09
+    lane: P15
+    kind: task
+    title: Stage the submission package in Outbox
+    exec: script
+    impl: exists
+    run: "agsci sr package manuscript/main.pdf manuscript/supplement submission/cover_letter.tex submission/reviewers.yaml [submission/highlights.txt] --out ~/Desktop/Outbox/<YYYY-MM-DD>_<slug>/  (review-pending; nothing is sent)"
+    in: [ms_final, ms_updated, cover_letter, reviewer_suggestions, highlights, reporting_checklist, supplement, data_deposit]
+    optional: [ms_updated, reporting_checklist]
+    out: [outbox_package]
+  - id: P15.10
+    lane: P15
+    kind: gate
+    title: Submit
+    exec: human
+    impl: human
+    run: "corresponding author submits via the journal system; record manuscript ID in review/submission.yaml"
+    approver: corresponding author
+    criterion: "all authors approved the final package"
+    in: [outbox_package, author_approval]
+    out: [submission_record]
+
+  # ---------------------------------------------------------------- P16 Peer review and revision
+  - id: P16.01
+    lane: P16
+    kind: task
+    title: Record the editorial decision letter
+    exec: human
+    impl: human
+    run: "save the letter to review/journal/decision_<n>.md"
+    in: [submission_record]
+    out: [decision_letter]
+  - id: P16.02
+    lane: P16
+    kind: decision
+    title: Editorial outcome
+    exec: human
+    impl: human
+    run: "record in review/decisions.yaml#P16.02"
+    options: [accept, revise, reject]
+    criterion: "as stated in the decision letter"
+    in: [decision_letter]
+    out: [editorial_decision]
+  - id: P16.03
+    lane: P16
+    kind: loop
+    title: Revision rounds
+    exec: ai+human
+    impl: exists
+    when: "P16.02 == revise"
+    run: "loop over P16.03a-e; reuses src/pipeline/revision.py patterns"
+    guard: "editor returns accept"
+    bound: 3
+    progress: "open reviewer points"
+    body: [P16.03a, P16.03b, P16.03c, P16.03d, P16.03e]
+    in: [decision_letter, editorial_decision, ms_final, claims_ledger, references]
+    out: [ms_accepted_rev]
+  - id: P16.03a
+    parent: P16.03
+    lane: P16
+    kind: task
+    title: Parse reviewer comments into a response matrix
+    exec: agent
+    impl: exists
+    skill: sr-submission
+    mode: response-matrix
+    run: "agsci board run src/scoping_review/board.yaml P16.03a --root <project>"
+    in: [decision_letter]
+    out: [response_matrix]
+  - id: P16.03b
+    parent: P16.03
+    lane: P16
+    kind: task
+    title: Author triages each point (revise / rebut)
+    exec: human
+    impl: human
+    run: "mark each row in review/journal/response_<n>.yaml"
+    in: [response_matrix]
+    out: [triage]
+  - id: P16.03c
+    parent: P16.03
+    lane: P16
+    kind: task
+    title: Revise manuscript and re-run every gate (grounding, refs, compile, proof)
+    exec: ai+human
+    impl: exists
+    skill: sr-fold
+    mode: revise
+    run: "agsci board run src/scoping_review/board.yaml P16.03c --root <project>  # AI drafts; a person reviews, then agsci board done"
+    in: [triage, ms_final, claims_ledger, references]
+    out: [ms_revised]
+  - id: P16.03d
+    parent: P16.03
+    lane: P16
+    kind: task
+    title: Response letter
+    exec: agent
+    impl: exists
+    skill: sr-submission
+    mode: response-letter
+    run: "agsci board run src/scoping_review/board.yaml P16.03d --root <project>"
+    in: [ms_revised, triage]
+    out: [response_letter]
+  - id: P16.03e
+    parent: P16.03
+    lane: P16
+    kind: task
+    title: Author approves and resubmits; record the next decision
+    exec: human
+    impl: human
+    run: "resubmit; save next decision letter"
+    in: [response_letter, ms_revised]
+    out: [resubmission]
+  - id: P16.04
+    lane: P16
+    kind: loop
+    title: Reformat and resubmit to the next fallback journal
+    exec: ai+human
+    impl: exists
+    when: "P16.02 == reject"
+    run: "agsci board start ... P16.04; run body P16.04a-b; agsci board iterate ... P16.04 --note <guard result> until the guard holds, then agsci board done ... P16.04"
+    guard: "a journal accepts"
+    bound: 2
+    progress: "fallback journals remaining"
+    body: [P16.04a, P16.04b]
+    in: [editorial_decision, journal_choice, ms_final, decision_letter]
+    out: [ms_accepted_fallback]
+  - id: P16.04a
+    parent: P16.04
+    lane: P16
+    kind: task
+    title: Re-profile, re-template and re-typeset for the next journal
+    exec: script
+    impl: exists
+    run: "agsci sr journal-profile --shortlist review/journal_shortlist.yaml --choice <choice with the next fallback as primary> --out review/journal_profile.yaml && agsci sr template ... && agsci board run ... P13.01 (typeset), then P13.02 compile loop, P13.05 limits and P14 proof gates for the new journal"
+    in: [journal_choice, ms_final, decision_letter]
+    out: [ms_retargeted]
+  - id: P16.04b
+    parent: P16.04
+    lane: P16
+    kind: task
+    title: Author approves and submits
+    exec: human
+    impl: human
+    run: "submit; record decision letter"
+    in: [ms_retargeted]
+    out: [fallback_submission]
+
+  # ---------------------------------------------------------------- P17 Publication and archiving
+  - id: P17.01
+    lane: P17
+    kind: task
+    title: Check galley proofs
+    exec: human
+    impl: human
+    when: "P16.02 == accept"
+    run: "compare proofs against manuscript/main.pdf; return corrections"
+    in: [editorial_decision, ms_final, ms_accepted_rev, ms_accepted_fallback]
+    optional: [ms_accepted_rev, ms_accepted_fallback]
+    out: [proofs_approved]
+  - id: P17.02
+    lane: P17
+    kind: task
+    title: Link publication DOI on OSF registration
+    exec: human
+    impl: human
+    run: "add the DOI and final deviations log to the OSF registration"
+    in: [proofs_approved, osf_registration, deviations_log]
+    out: [osf_final]
+  - id: P17.03
+    lane: P17
+    kind: task
+    title: Archive the run (board ledger, AI-use log, hashes)
+    exec: script
+    impl: exists
+    run: "agsci sr archive --root <project> --out review/archive_manifest.json"
+    in: [proofs_approved, osf_final]
+    out: [archive_manifest]
+  - id: P17.04
+    lane: P17
+    kind: milestone
+    title: Published
+    exec: human
+    impl: human
+    run: "mark board complete"
+    in: [archive_manifest]
+    out: [published]

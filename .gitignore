@@ -82,3 +82,7 @@ outputs/
 
 # Harness-written sealed task runtime manifest (machine-specific, derived)
 .agentic_runtime.json
+.dashboard/
+
+# Unpublished review decisions used as local test fixtures; never commit
+tests/scoping_review/fixtures/aisr_*

@@ -1,0 +1,75 @@
+{
+ "searches": [
+  {
+   "database": "arxiv",
+   "interface": "public API",
+   "query": "all:\"large language model\" AND all:\"systematic review\" AND all:screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/arxiv.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:24Z",
+   "cap": 60,
+   "error": "GET failed after 3 tries: HTTP Error 429: Unknown Error (https://export.arxiv.org/api/query?search_query=all%3A%22large+language+model%22+AND+all%3A%22systematic+review%22+AND+a)"
+  },
+  {
+   "database": "crossref",
+   "interface": "public API",
+   "query": "large language model systematic review screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/crossref.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:33Z",
+   "cap": 60,
+   "retrieved": 60,
+   "kept_with_identifier": 60,
+   "capped": true
+  },
+  {
+   "database": "europepmc",
+   "interface": "public API",
+   "query": "\"large language model\" AND (\"systematic review\" OR \"scoping review\") AND screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/europepmc.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:35Z",
+   "cap": 60,
+   "retrieved": 60,
+   "kept_with_identifier": 59,
+   "capped": true
+  },
+  {
+   "database": "openalex",
+   "interface": "public API",
+   "query": "large language model systematic review screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/openalex.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:37Z",
+   "cap": 60,
+   "retrieved": 60,
+   "kept_with_identifier": 60,
+   "capped": true
+  },
+  {
+   "database": "pubmed",
+   "interface": "public API",
+   "query": "\"large language model\" AND (\"systematic review\" OR \"scoping review\") AND screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/pubmed.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:39Z",
+   "cap": 60,
+   "retrieved": 60,
+   "kept_with_identifier": 60,
+   "capped": true
+  },
+  {
+   "database": "semanticscholar",
+   "interface": "public API",
+   "query": "large language model systematic review screening",
+   "strategy_file": "tests/scoping_review/fixtures/sr_search_2026-10-16/strategies/semanticscholar.txt",
+   "limits": "none",
+   "searched_utc": "2026-10-16T02:51:41Z",
+   "cap": 60,
+   "retrieved": 60,
+   "kept_with_identifier": 60,
+   "capped": true
+  }
+ ],
+ "not_searched_by_api": "Embase, CINAHL, PsycINFO, Scopus, Web of Science, IEEE Xplore, ACM DL (import exports instead)"
+}

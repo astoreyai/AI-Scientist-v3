@@ -1,0 +1,182 @@
+# PRISMA 2020 checklist (Page MJ et al. BMJ 2021;372:n71), parsed from the official checklist PDF
+# https://www.prisma-statement.org/s/PRISMA_2020_checklist-djgh.pdf retrieved 2026-10-16.
+name: PRISMA 2020
+version: '2020'
+items:
+- n: '1'
+  section: Title
+  name: Title
+  text: Identify the report as a systematic review.
+- n: '2'
+  section: Abstract
+  name: Abstract
+  text: See the PRISMA 2020 for Abstracts checklist.
+- n: '3'
+  section: Introduction
+  name: Rationale
+  text: Describe the rationale for the review in the context of existing knowledge.
+- n: '4'
+  section: Introduction
+  name: Objectives
+  text: Provide an explicit statement of the objective(s) or question(s) the review addresses.
+- n: '5'
+  section: Methods
+  name: Eligibility criteria
+  text: Specify the inclusion and exclusion criteria for the review and how studies were grouped for the syntheses.
+- n: '6'
+  section: Methods
+  name: Information sources
+  text: Specify all databases, registers, websites, organisations, reference lists and other sources searched or consulted to identify studies. Specify the date when each source was last searched or consulted.
+- n: '7'
+  section: Methods
+  name: Search strategy
+  text: Present the full search strategies for all databases, registers and websites, including any filters and limits used.
+- n: '8'
+  section: Methods
+  name: Selection process
+  text: Specify the methods used to decide whether a study met the inclusion criteria of the review, including how many reviewers screened each record and each report retrieved, whether they worked independently,
+    and if applicable, details of automation tools used in the process.
+- n: '9'
+  section: Methods
+  name: Data collection process
+  text: Specify the methods used to collect data from reports, including how many reviewers collected data from each report, whether they worked independently, any processes for obtaining or confirming
+    data from study investigators, and if applicable, details of automation tools used in the process.
+- n: 10a
+  section: Methods
+  name: Data items
+  text: List and define all outcomes for which data were sought. Specify whether all results that were compatible with each outcome domain in each study were sought (e.g. for all measures, time points,
+    analyses), and if not, the methods used to decide which results to collect.
+- n: 10b
+  section: Methods
+  name: Data items
+  text: List and define all other variables for which data were sought (e.g. participant and intervention characteristics, funding sources). Describe any assumptions made about any missing or unclear information.
+- n: '11'
+  section: Methods
+  name: Study risk of bias assessment
+  text: Specify the methods used to assess risk of bias in the included studies, including details of the tool(s) used, how many reviewers assessed each study and whether they worked independently, and
+    if applicable, details of automation tools used in the process.
+- n: '12'
+  section: Methods
+  name: Effect measures
+  text: Specify for each outcome the effect measure(s) (e.g. risk ratio, mean difference) used in the synthesis or presentation of results.
+- n: 13a
+  section: Methods
+  name: Synthesis methods
+  text: 'Describe the processes used to decide which studies were eligible for each synthesis (e.g. tabulating the study intervention characteristics and comparing against the planned groups for each synthesis
+    (item #5)).'
+- n: 13b
+  section: Methods
+  name: Synthesis methods
+  text: Describe any methods required to prepare the data for presentation or synthesis, such as handling of missing summary statistics, or data conversions.
+- n: 13c
+  section: Methods
+  name: Synthesis methods
+  text: Describe any methods used to tabulate or visually display results of individual studies and syntheses.
+- n: 13d
+  section: Methods
+  name: Synthesis methods
+  text: Describe any methods used to synthesize results and provide a rationale for the choice(s). If meta-analysis was performed, describe the model(s), method(s) to identify the presence and extent of
+    statistical heterogeneity, and software package(s) used.
+- n: 13e
+  section: Methods
+  name: Synthesis methods
+  text: Describe any methods used to explore possible causes of heterogeneity among study results (e.g. subgroup analysis, meta-regression).
+- n: 13f
+  section: Methods
+  name: Synthesis methods
+  text: Describe any sensitivity analyses conducted to assess robustness of the synthesized results.
+- n: '14'
+  section: Methods
+  name: Reporting bias assessment
+  text: Describe any methods used to assess risk of bias due to missing results in a synthesis (arising from reporting biases).
+- n: '15'
+  section: Methods
+  name: Certainty assessment
+  text: Describe any methods used to assess certainty (or confidence) in the body of evidence for an outcome.
+- n: 16a
+  section: Results
+  name: Study selection
+  text: Describe the results of the search and selection process, from the number of records identified in the search to the number of studies included in the review, ideally using a flow diagram.
+- n: 16b
+  section: Results
+  name: Study selection
+  text: Cite studies that might appear to meet the inclusion criteria, but which were excluded, and explain why they were excluded.
+- n: '17'
+  section: Results
+  name: Study characteristics
+  text: Cite each included study and present its characteristics.
+- n: '18'
+  section: Results
+  name: Risk of bias in studies
+  text: Present assessments of risk of bias for each included study.
+- n: '19'
+  section: Results
+  name: Results of individual studies
+  text: 'For all outcomes, present, for each study: (a) summary statistics for each group (where appropriate) and (b) an effect estimate and its precision (e.g. confidence/credible interval), ideally using
+    structured tables or plots.'
+- n: 20a
+  section: Results
+  name: Results of syntheses
+  text: For each synthesis, briefly summarise the characteristics and risk of bias among contributing studies.
+- n: 20b
+  section: Results
+  name: Results of syntheses
+  text: Present results of all statistical syntheses conducted. If meta-analysis was done, present for each the summary estimate and its precision (e.g. confidence/credible interval) and measures of statistical
+    heterogeneity. If comparing groups, describe the direction of the effect.
+- n: 20c
+  section: Results
+  name: Results of syntheses
+  text: Present results of all investigations of possible causes of heterogeneity among study results.
+- n: 20d
+  section: Results
+  name: Results of syntheses
+  text: Present results of all sensitivity analyses conducted to assess the robustness of the synthesized results.
+- n: '21'
+  section: Results
+  name: Reporting biases
+  text: Present assessments of risk of bias due to missing results (arising from reporting biases) for each synthesis assessed.
+- n: '22'
+  section: Results
+  name: Certainty of evidence
+  text: Present assessments of certainty (or confidence) in the body of evidence for each outcome assessed.
+- n: 23a
+  section: Discussion
+  name: Discussion
+  text: Provide a general interpretation of the results in the context of other evidence.
+- n: 23b
+  section: Discussion
+  name: Discussion
+  text: Discuss any limitations of the evidence included in the review.
+- n: 23c
+  section: Discussion
+  name: Discussion
+  text: Discuss any limitations of the review processes used.
+- n: 23d
+  section: Discussion
+  name: Discussion
+  text: Discuss implications of the results for practice, policy, and future research.
+- n: 24a
+  section: Other Information
+  name: Registration and protocol
+  text: Provide registration information for the review, including register name and registration number, or state that the review was not registered.
+- n: 24b
+  section: Other Information
+  name: Registration and protocol
+  text: Indicate where the review protocol can be accessed, or state that a protocol was not prepared.
+- n: 24c
+  section: Other Information
+  name: Registration and protocol
+  text: Describe and explain any amendments to information provided at registration or in the protocol.
+- n: '25'
+  section: Other Information
+  name: Support
+  text: Describe sources of financial or non-financial support for the review, and the role of the funders or sponsors in the review.
+- n: '26'
+  section: Other Information
+  name: Competing interests
+  text: Declare any competing interests of review authors.
+- n: '27'
+  section: Other Information
+  name: Availability of data, code and other materials
+  text: 'Report which of the following are publicly available and where they can be found: template data collection forms; data extracted from included studies; data used for all analyses; analytic code;
+    any other materials used in the review.'

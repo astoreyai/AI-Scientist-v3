@@ -7,6 +7,9 @@ Usage::
     agsci doctor [--json] [--image REF]              # host readiness checks
     agsci inspect [build|start|dev] [options]        # run inspector web UI
     agsci review <paper.pdf> [--output review.json]  # standalone OpenAI-backed reviewer
+    agsci board check|render <board.yaml> ...         # validate / render a research-type task graph
+    agsci sr <subcommand> ...                         # scoping-review script nodes
+    agsci sysrev <subcommand> ...                     # systematic-review script nodes
 
 Subcommand modules are imported lazily so ``agsci doctor``, ``agsci inspect``,
 and ``agsci review`` do not pay for the pipeline's Hydra imports.
@@ -27,6 +30,9 @@ Commands:
   doctor       Check this host for the tools, images, and GPUs the pipeline needs
   inspect      Build and serve the run inspector web UI: agsci inspect [build|start|dev]
   review       Review a paper PDF with the OpenAI-backed reviewer: agsci review <paper.pdf> [--output review.json]
+  board        Validate or render a research-type task graph: agsci board check|render <board.yaml>
+  sr           Scoping-review script nodes: agsci sr <subcommand> (agsci sr --help)
+  sysrev       Systematic-review script nodes: agsci sysrev <subcommand> (agsci sysrev --help)
 
 Run `agsci <command> --help` for that command's options.
 """
@@ -73,6 +79,18 @@ def main(argv: list[str] | None = None) -> int:
         from src.agsci import review
 
         return review.main(rest)
+    if command == "board":
+        from src.board import graph
+
+        return graph.main(rest)
+    if command == "sr":
+        from src.scoping_review import cli as sr_cli
+
+        return sr_cli.main(rest)
+    if command == "sysrev":
+        from src.systematic_review import cli as sysrev_cli
+
+        return sysrev_cli.main(rest)
     print(f"agsci: unknown command {command!r}", file=sys.stderr)
     if _looks_like_pipeline_argument(command):
         print(

@@ -1,0 +1,61 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "ChartRecord",
+ "description": "Charted data for one included source; every field carries its evidence.",
+ "type": "object",
+ "required": [
+  "record_id",
+  "form_version",
+  "fields"
+ ],
+ "properties": {
+  "record_id": {
+   "type": "string",
+   "minLength": 1
+  },
+  "form_version": {
+   "type": "string",
+   "minLength": 1
+  },
+  "fields": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "value",
+     "quote"
+    ],
+    "properties": {
+     "value": {},
+     "quote": {
+      "type": "string",
+      "description": "verbatim span; empty string only when value is 'not reported'"
+     },
+     "page": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "charted_by": {
+      "type": "string"
+     },
+     "verified_by": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "status": {
+      "enum": [
+       "ai",
+       "verified",
+       "edited",
+       "not_reported"
+      ]
+     }
+    }
+   }
+  }
+ }
+}

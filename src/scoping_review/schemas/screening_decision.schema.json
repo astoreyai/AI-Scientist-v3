@@ -1,0 +1,62 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "ScreeningDecision",
+ "description": "One screener's decision on one record at one stage.",
+ "type": "object",
+ "required": [
+  "record_id",
+  "stage",
+  "screener",
+  "decision",
+  "reason_code"
+ ],
+ "properties": {
+  "record_id": {
+   "type": "string",
+   "minLength": 1
+  },
+  "stage": {
+   "enum": [
+    "pilot",
+    "ta",
+    "ft",
+    "chase"
+   ]
+  },
+  "screener": {
+   "type": "string",
+   "minLength": 1,
+   "description": "human initials or ai:<model id>"
+  },
+  "decision": {
+   "enum": [
+    "include",
+    "exclude",
+    "maybe"
+   ]
+  },
+  "reason_code": {
+   "type": "string",
+   "minLength": 1,
+   "description": "code from the screening guide, e.g. E1 wrong population; I for include"
+  },
+  "quote": {
+   "type": "string",
+   "description": "verbatim span from the record that supports the decision (required for AI)"
+  },
+  "page": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "confidence": {
+   "type": "number",
+   "minimum": 0,
+   "maximum": 1
+  },
+  "decided_utc": {
+   "type": "string"
+  }
+ }
+}

@@ -1,0 +1,148 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "JournalProfile",
+ "description": "Requirements of one target journal, recorded from its live author guidelines.",
+ "type": "object",
+ "required": [
+  "name",
+  "guidelines_url",
+  "retrieved_utc",
+  "accepts_scoping_reviews",
+  "reporting_checklist",
+  "ai_policy"
+ ],
+ "properties": {
+  "name": {
+   "type": "string",
+   "minLength": 1
+  },
+  "publisher": {
+   "type": "string"
+  },
+  "guidelines_url": {
+   "type": "string",
+   "minLength": 1
+  },
+  "retrieved_utc": {
+   "type": "string",
+   "minLength": 1
+  },
+  "accepts_scoping_reviews": {
+   "type": "boolean"
+  },
+  "reporting_checklist": {
+   "enum": [
+    "prisma_scr",
+    "prisma_2020",
+    "none_stated"
+   ]
+  },
+  "checklist_with_page_numbers": {
+   "type": "boolean"
+  },
+  "protocol_registration_required": {
+   "type": "boolean"
+  },
+  "word_limit": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "abstract_word_limit": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "abstract_structure": {
+   "type": [
+    "array",
+    "null"
+   ],
+   "items": {
+    "type": "string"
+   }
+  },
+  "max_figures": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "max_tables": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "max_references": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "citation_style": {
+   "type": "string"
+  },
+  "latex_template_url": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "graphical_abstract": {
+   "enum": [
+    "required",
+    "optional",
+    "no"
+   ]
+  },
+  "highlights": {
+   "enum": [
+    "required",
+    "optional",
+    "no"
+   ]
+  },
+  "preprint_policy": {
+   "type": "string"
+  },
+  "ai_policy": {
+   "type": "object",
+   "required": [
+    "url",
+    "ai_screening_allowed_with_disclosure"
+   ],
+   "properties": {
+    "url": {
+     "type": "string"
+    },
+    "ai_screening_allowed_with_disclosure": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "notes": {
+     "type": "string"
+    }
+   }
+  },
+  "open_access": {
+   "type": "string"
+  },
+  "apc_usd": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "other_required_items": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  }
+ }
+}

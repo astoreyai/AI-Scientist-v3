@@ -70,6 +70,9 @@ packages = [
     "src.posthoc_pipeline",
     "src.final_evaluation",
     "src.task_drafting",
+    "src.board",
+    "src.scoping_review",
+    "src.systematic_review",
 ]
 
 [tool.ruff]
